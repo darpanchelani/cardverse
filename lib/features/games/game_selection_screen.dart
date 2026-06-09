@@ -1,7 +1,8 @@
+import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
-import 'package:cardverse/core/constants/app_strings.dart';
 import 'package:cardverse/core/widgets/game_card.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class GameSelectionScreen extends StatelessWidget {
   const GameSelectionScreen({required this.mode, super.key});
@@ -66,11 +67,9 @@ class GameSelectionScreen extends StatelessWidget {
                         name: game.name,
                         icon: game.icon,
                         isLocked: game.isLocked,
-                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(AppStrings.comingSoonMessage),
-                          ),
-                        ),
+                        onTap: () => _handleGameTap(context, game.name),
+                        onLockedTap: () =>
+                            _showMessage(context, 'This game is coming soon.'),
                       );
                     },
                   ),
@@ -81,6 +80,23 @@ class GameSelectionScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _handleGameTap(BuildContext context, String gameName) {
+    switch (gameName) {
+      case 'High Card':
+        context.push(AppRoutes.highCard);
+      case 'War':
+        _showMessage(context, 'War game coming in next phase.');
+      case 'Blackjack':
+        _showMessage(context, 'Blackjack game coming soon.');
+    }
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

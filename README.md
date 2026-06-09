@@ -16,6 +16,8 @@ application develops.
 - Login, account registration, and guest access
 - Responsive home dashboard with quick access to every section
 - Computer game catalog with available and coming-soon titles
+- Playable High Card game against a computer opponent
+- Shuffled 52-card deck, round results, score tracking, and game reset controls
 - Private room creation with game and player-count options
 - Room-code display, copy action, and join-room interface
 - Player leaderboard with rankings and win totals
@@ -27,9 +29,12 @@ application develops.
 
 ## Available Games
 
-Available in the game selection catalog:
+Playable:
 
 - High Card
+
+Available in the game selection catalog:
+
 - War
 - Blackjack
 
@@ -205,8 +210,8 @@ The following systems are not connected yet:
 - Real authentication and user accounts
 - Backend APIs and persistent storage
 - Firebase integration
-- Computer opponent intelligence
-- Card game rules and playable game sessions
+- Computer opponent intelligence beyond High Card
+- Playable sessions for War, Blackjack, and other card games
 - Online rooms and multiplayer networking
 - Real leaderboard and profile statistics
 

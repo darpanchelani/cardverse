@@ -1,6 +1,7 @@
 import 'package:cardverse/features/auth/login_screen.dart';
 import 'package:cardverse/features/auth/register_screen.dart';
 import 'package:cardverse/features/games/game_selection_screen.dart';
+import 'package:cardverse/features/games/high_card/high_card_screen.dart';
 import 'package:cardverse/features/home/home_screen.dart';
 import 'package:cardverse/features/leaderboard/leaderboard_screen.dart';
 import 'package:cardverse/features/onboarding/onboarding_screen.dart';
@@ -17,6 +18,7 @@ abstract final class AppRoutes {
   static const register = '/register';
   static const home = '/home';
   static const games = '/games';
+  static const highCard = '/high-card';
   static const createRoom = '/rooms/create';
   static const joinRoom = '/rooms/join';
   static const leaderboard = '/leaderboard';
@@ -41,6 +43,10 @@ abstract final class AppRoutes {
         builder: (context, state) => GameSelectionScreen(
           mode: state.pathParameters['mode'] ?? 'computer',
         ),
+      ),
+      GoRoute(
+        path: highCard,
+        builder: (context, state) => const HighCardScreen(),
       ),
       GoRoute(
         path: createRoom,

@@ -8,12 +8,14 @@ class GameCard extends StatelessWidget {
     required this.isLocked,
     required this.onTap,
     super.key,
+    this.onLockedTap,
   });
 
   final String name;
   final IconData icon;
   final bool isLocked;
   final VoidCallback onTap;
+  final VoidCallback? onLockedTap;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +25,7 @@ class GameCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isLocked ? null : onTap,
+          onTap: isLocked ? onLockedTap : onTap,
           borderRadius: BorderRadius.circular(22),
           child: Ink(
             decoration: BoxDecoration(
