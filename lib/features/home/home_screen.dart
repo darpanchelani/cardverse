@@ -1,0 +1,221 @@
+import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/constants/app_strings.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = [
+      _HomeAction(
+        title: 'Play With Computer',
+        subtitle: 'Practice against smart bots',
+        icon: Icons.smart_toy_rounded,
+        emphasized: true,
+        onTap: () => context.push('${AppRoutes.games}/computer'),
+      ),
+      _HomeAction(
+        title: 'Play With Friends',
+        subtitle: 'Host a private card table',
+        icon: Icons.groups_rounded,
+        onTap: () => context.push(AppRoutes.createRoom),
+      ),
+      _HomeAction(
+        title: 'Join Room',
+        subtitle: 'Enter a friend’s room code',
+        icon: Icons.meeting_room_outlined,
+        onTap: () => context.push(AppRoutes.joinRoom),
+      ),
+      _HomeAction(
+        title: 'Leaderboard',
+        subtitle: 'See the top players',
+        icon: Icons.emoji_events_outlined,
+        onTap: () => context.push(AppRoutes.leaderboard),
+      ),
+      _HomeAction(
+        title: 'Profile',
+        subtitle: 'View your player stats',
+        icon: Icons.person_outline_rounded,
+        onTap: () => context.push(AppRoutes.profile),
+      ),
+    ];
+
+    return Scaffold(
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 12),
+              sliver: SliverToBoxAdapter(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 26,
+                          backgroundColor: AppColors.gold,
+                          child: Text(
+                            'GP',
+                            style: TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'Arial',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome to CardVerse',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                AppStrings.guestPlayer,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppColors.gold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Profile',
+                          onPressed: () => context.push(AppRoutes.profile),
+                          icon: const Icon(Icons.settings_outlined),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
+              sliver: SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.crossAxisExtent >= 650
+                      ? 2
+                      : 1;
+                  return SliverGrid.builder(
+                    itemCount: actions.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      mainAxisExtent: crossAxisCount == 1 ? 112 : 126,
+                    ),
+                    itemBuilder: (context, index) =>
+                        _HomeActionCard(action: actions[index]),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeActionCard extends StatelessWidget {
+  const _HomeActionCard({required this.action});
+
+  final _HomeAction action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: action.onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: action.emphasized ? AppColors.gold : AppColors.cardGreen,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: action.emphasized ? AppColors.paleGold : AppColors.border,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: action.emphasized
+                      ? AppColors.ink.withValues(alpha: 0.1)
+                      : AppColors.inputGreen,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  action.icon,
+                  color: action.emphasized ? AppColors.ink : AppColors.paleGold,
+                  size: 29,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      action.title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: action.emphasized
+                            ? AppColors.ink
+                            : AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      action.subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: action.emphasized
+                            ? AppColors.ink.withValues(alpha: 0.7)
+                            : AppColors.mutedText,
+                        fontFamily: 'Arial',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 17,
+                color: action.emphasized ? AppColors.ink : AppColors.mutedText,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeAction {
+  const _HomeAction({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+    this.emphasized = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool emphasized;
+}
