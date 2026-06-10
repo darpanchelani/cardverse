@@ -4,6 +4,8 @@ CardVerse is an offline-first Flutter card games hub with a dark card-table
 interface. Players can play classic games against computer opponents, earn
 rewards, unlock achievements, build persistent profile statistics, review match
 history, and compare their progress on a local leaderboard.
+It also includes a complete simulated multiplayer frontend for creating rooms,
+inviting friends, chatting, and preparing a lobby before a match.
 
 ## Features
 
@@ -23,8 +25,16 @@ history, and compare their progress on a local leaderboard.
 - Offline leaderboard with overall and per-game filters
 - Automatic game-result recording with duplicate-save protection
 - Corrupt or missing local data fallback to safe defaults
-- Private room creation with game and player-count options
-- Room-code display, copy action, and join-room interface
+- Private and public room creation with game, timer, difficulty, chat, and bot settings
+- Validated six-character room codes with copy and join flows
+- Public room browser with game filters and local dummy rooms
+- Friends list with search, presence status, removal, and room invites
+- Local invitation inbox with accept and decline actions
+- Multiplayer room lobby with player slots, host and ready badges, and bot controls
+- Local room chat with user and system messages
+- Ready and start-game flow with a multiplayer game placeholder
+- Backend-neutral room, friend, invite, chat, and game configuration models
+- Dummy service boundaries prepared for later backend and Socket.IO replacement
 - Profile reset with confirmation
 - Responsive game grid designed for mobile and wider displays
 - Reusable buttons, text fields, game cards, colors, and strings
@@ -159,6 +169,12 @@ lib/
     ├── history/
     ├── home/
     ├── leaderboard/
+    ├── multiplayer/
+    │   ├── controllers/
+    │   ├── models/
+    │   ├── screens/
+    │   ├── services/
+    │   └── widgets/
     ├── onboarding/
     ├── profile/
     ├── progress/
@@ -175,7 +191,14 @@ Splash
   -> Home
      -> Game Selection
      -> Create Room
+        -> Room Lobby
+           -> Multiplayer Placeholder
      -> Join Room
+        -> Room Lobby
+     -> Public Rooms
+        -> Room Lobby
+     -> Friends
+     -> Invites
      -> Leaderboard
      -> Profile
         -> Achievements
@@ -199,6 +222,24 @@ Game rewards:
 - Draw or push: 20 coins and 15 XP
 
 Blackjack betting chips remain separate from profile reward coins.
+
+## Multiplayer Preview
+
+Multiplayer screens currently use in-memory dummy services. They support:
+
+- Creating private or public rooms
+- Joining rooms by code
+- Browsing public rooms
+- Adding bots and toggling player readiness
+- Inviting local dummy friends
+- Accepting or declining dummy invites
+- Sending local room chat messages
+- Entering a multiplayer game placeholder once all players are ready
+
+No network traffic, backend service, Firebase integration, or Socket.IO
+connection is used. Controllers depend on service classes so the dummy room,
+chat, and friend implementations can be replaced later without moving network
+logic into UI widgets.
 
 ## Quality Checks
 
@@ -229,8 +270,10 @@ systems are intentionally not included:
 - Backend APIs and cloud synchronization
 - Firebase integration
 - Playable sessions for the remaining card games
-- Online rooms and multiplayer networking
+- Real-time room synchronization and multiplayer gameplay
+- Socket.IO or other networking transport
 
 Leaderboard opponents and room codes use local sample data. The current user's
 profile, rewards, statistics, achievements, and match history are real local
-records created by gameplay.
+records created by gameplay. Friends, invites, active rooms, lobby chat, and
+public room listings are simulated in memory.

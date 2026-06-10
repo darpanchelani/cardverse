@@ -31,6 +31,24 @@ class HomeScreen extends StatelessWidget {
         onTap: () => context.push(AppRoutes.joinRoom),
       ),
       _HomeAction(
+        title: 'Public Rooms',
+        subtitle: 'Browse open multiplayer tables',
+        icon: Icons.public_rounded,
+        onTap: () => context.push(AppRoutes.publicRooms),
+      ),
+      _HomeAction(
+        title: 'Friends',
+        subtitle: 'See who is ready to play',
+        icon: Icons.people_outline_rounded,
+        onTap: () => context.push(AppRoutes.friends),
+      ),
+      _HomeAction(
+        title: 'Invites',
+        subtitle: 'Review your room invitations',
+        icon: Icons.mail_outline_rounded,
+        onTap: () => context.push(AppRoutes.invites),
+      ),
+      _HomeAction(
         title: 'Match History',
         subtitle: 'Review your recent results',
         icon: Icons.history_rounded,

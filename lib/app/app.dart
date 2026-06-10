@@ -1,16 +1,24 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/app/theme.dart';
+import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
 
 class CardVerseApp extends StatelessWidget {
-  const CardVerseApp({super.key, this.progressController});
+  const CardVerseApp({
+    super.key,
+    this.progressController,
+    this.multiplayerControllers,
+  });
 
   final ProgressController? progressController;
+  final MultiplayerControllers? multiplayerControllers;
 
   @override
   Widget build(BuildContext context) {
     final controller = progressController ?? ProgressController.maybeInstance;
+    final multiplayer =
+        multiplayerControllers ?? MultiplayerControllers.instance;
     final app = MaterialApp.router(
       title: 'CardVerse',
       debugShowCheckedModeBanner: false,
@@ -23,9 +31,13 @@ class CardVerseApp extends StatelessWidget {
               child: child ?? const SizedBox.shrink(),
             ),
     );
+    final multiplayerApp = MultiplayerScope(
+      controllers: multiplayer,
+      child: app,
+    );
     return controller == null
-        ? app
-        : ProgressScope(controller: controller, child: app);
+        ? multiplayerApp
+        : ProgressScope(controller: controller, child: multiplayerApp);
   }
 }
 
