@@ -87,7 +87,7 @@ class GameSelectionScreen extends StatelessWidget {
       case 'High Card':
         context.push(AppRoutes.highCard);
       case 'War':
-        _showMessage(context, 'War game coming in next phase.');
+        context.push(AppRoutes.war);
       case 'Blackjack':
         _showMessage(context, 'Blackjack game coming soon.');
     }
