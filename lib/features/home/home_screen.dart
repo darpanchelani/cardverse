@@ -1,6 +1,6 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
-import 'package:cardverse/core/constants/app_strings.dart';
+import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +9,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = ProgressScope.of(context);
     final actions = [
       _HomeAction(
         title: 'Play With Computer',
@@ -28,6 +29,12 @@ class HomeScreen extends StatelessWidget {
         subtitle: 'Enter a friend’s room code',
         icon: Icons.meeting_room_outlined,
         onTap: () => context.push(AppRoutes.joinRoom),
+      ),
+      _HomeAction(
+        title: 'Match History',
+        subtitle: 'Review your recent results',
+        icon: Icons.history_rounded,
+        onTap: () => context.push(AppRoutes.matchHistory),
       ),
       _HomeAction(
         title: 'Leaderboard',
@@ -79,10 +86,13 @@ class HomeScreen extends StatelessWidget {
                                 ).textTheme.headlineMedium,
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                AppStrings.guestPlayer,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: AppColors.gold),
+                              AnimatedBuilder(
+                                animation: progress,
+                                builder: (context, child) => Text(
+                                  progress.profile.username,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(color: AppColors.gold),
+                                ),
                               ),
                             ],
                           ),
@@ -93,6 +103,21 @@ class HomeScreen extends StatelessWidget {
                           icon: const Icon(Icons.settings_outlined),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
+              sliver: SliverToBoxAdapter(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: AnimatedBuilder(
+                      animation: progress,
+                      builder: (context, child) =>
+                          _ProgressSummary(controller: progress),
                     ),
                   ),
                 ),
@@ -121,6 +146,60 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ProgressSummary extends StatelessWidget {
+  const _ProgressSummary({required this.controller});
+
+  final ProgressController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = controller.profile;
+    final stats = [
+      ('Level', '${profile.level}', Icons.military_tech_rounded),
+      ('Coins', '${profile.coins}', Icons.monetization_on_rounded),
+      ('Wins', '${profile.totalWins}', Icons.emoji_events_rounded),
+      ('Streak', '${profile.currentStreak}', Icons.bolt_rounded),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardGreen,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: stats
+            .map(
+              (stat) => Expanded(
+                child: Column(
+                  children: [
+                    Icon(stat.$3, color: AppColors.gold, size: 19),
+                    const SizedBox(height: 5),
+                    Text(
+                      stat.$2,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.paleGold,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      stat.$1,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.mutedText,
+                        fontFamily: 'Arial',
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
       ),
     );
   }

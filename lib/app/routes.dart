@@ -4,10 +4,12 @@ import 'package:cardverse/features/games/blackjack/blackjack_screen.dart';
 import 'package:cardverse/features/games/game_selection_screen.dart';
 import 'package:cardverse/features/games/high_card/high_card_screen.dart';
 import 'package:cardverse/features/games/war/war_screen.dart';
+import 'package:cardverse/features/history/match_history_screen.dart';
 import 'package:cardverse/features/home/home_screen.dart';
 import 'package:cardverse/features/leaderboard/leaderboard_screen.dart';
 import 'package:cardverse/features/onboarding/onboarding_screen.dart';
 import 'package:cardverse/features/profile/profile_screen.dart';
+import 'package:cardverse/features/progress/achievements_screen.dart';
 import 'package:cardverse/features/rooms/create_room_screen.dart';
 import 'package:cardverse/features/rooms/join_room_screen.dart';
 import 'package:cardverse/features/splash/splash_screen.dart';
@@ -27,6 +29,8 @@ abstract final class AppRoutes {
   static const joinRoom = '/rooms/join';
   static const leaderboard = '/leaderboard';
   static const profile = '/profile';
+  static const matchHistory = '/match-history';
+  static const achievements = '/achievements';
 
   static final router = GoRouter(
     initialLocation: splash,
@@ -72,6 +76,14 @@ abstract final class AppRoutes {
       GoRoute(
         path: profile,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: matchHistory,
+        builder: (context, state) => const MatchHistoryScreen(),
+      ),
+      GoRoute(
+        path: achievements,
+        builder: (context, state) => const AchievementsScreen(),
       ),
     ],
   );

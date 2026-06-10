@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/constants/app_strings.dart';
+import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,19 +15,37 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Timer? _timer;
+  Timer? _minimumDisplayTimer;
+  bool _minimumDisplayElapsed = false;
+  bool? _hasSeenOnboarding;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(seconds: 2), () {
-      if (mounted) context.go(AppRoutes.onboarding);
+    _minimumDisplayTimer = Timer(const Duration(seconds: 2), () {
+      _minimumDisplayElapsed = true;
+      _navigateIfReady();
     });
+    unawaited(_loadOnboardingStatus());
+  }
+
+  Future<void> _loadOnboardingStatus() async {
+    final storage = await LocalStorageService.create();
+    _hasSeenOnboarding =
+        await storage.getBool(StorageKeys.hasSeenOnboarding) ?? false;
+    _navigateIfReady();
+  }
+
+  void _navigateIfReady() {
+    if (!mounted || !_minimumDisplayElapsed || _hasSeenOnboarding == null) {
+      return;
+    }
+    context.go(_hasSeenOnboarding! ? AppRoutes.login : AppRoutes.onboarding);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _minimumDisplayTimer?.cancel();
     super.dispose();
   }
 

@@ -1,5 +1,6 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -42,8 +43,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     if (_currentPage == _pages.length - 1) {
+      await _completeOnboarding();
+      if (!mounted) return;
       context.go(AppRoutes.login);
       return;
     }
@@ -51,6 +54,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  Future<void> _skip() async {
+    await _completeOnboarding();
+    if (mounted) context.go(AppRoutes.login);
+  }
+
+  Future<void> _completeOnboarding() async {
+    final storage = await LocalStorageService.create();
+    await storage.saveBool(StorageKeys.hasSeenOnboarding, true);
   }
 
   @override
@@ -63,10 +76,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => context.go(AppRoutes.login),
-                  child: const Text('Skip'),
-                ),
+                child: TextButton(onPressed: _skip, child: const Text('Skip')),
               ),
               Expanded(
                 child: PageView.builder(

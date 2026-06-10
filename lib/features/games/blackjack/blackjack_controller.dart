@@ -1,20 +1,31 @@
+import 'dart:async';
+
 import 'package:cardverse/features/games/blackjack/blackjack_rules.dart';
 import 'package:cardverse/features/games/blackjack/blackjack_state.dart';
 import 'package:cardverse/features/games/engine/deck_engine.dart';
 import 'package:cardverse/features/games/models/playing_card_model.dart';
+import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/foundation.dart';
 
 class BlackjackController extends ChangeNotifier {
-  BlackjackController({DeckEngine? deckEngine})
-    : _deckEngine = deckEngine ?? DeckEngine() {
+  BlackjackController({
+    DeckEngine? deckEngine,
+    ProgressController? progressController,
+  }) : _deckEngine = deckEngine ?? DeckEngine(),
+       _progressController =
+           progressController ?? ProgressController.maybeInstance {
     _state = _newGameState();
+    unawaited(_restorePersistentChips());
   }
 
   static const betOptions = [10, 25, 50, 100, 250];
 
   final DeckEngine _deckEngine;
+  final ProgressController? _progressController;
   late BlackjackState _state;
   bool _isActing = false;
+  int _gameSession = 0;
+  final Set<int> _recordedRounds = {};
 
   BlackjackState get state => _state;
 
@@ -43,7 +54,10 @@ class BlackjackController extends ChangeNotifier {
   }
 
   void startNewGame() {
+    _gameSession++;
+    _recordedRounds.clear();
     _state = _newGameState();
+    unawaited(_progressController?.saveBlackjackChips(1000));
     notifyListeners();
   }
 
@@ -230,6 +244,8 @@ class BlackjackController extends ChangeNotifier {
       isGameOver: gameOver,
       roundResult: result,
     );
+    unawaited(_progressController?.saveBlackjackChips(chips));
+    _recordRound(result);
     if (notify) notifyListeners();
   }
 
@@ -302,5 +318,54 @@ class BlackjackController extends ChangeNotifier {
       BlackjackRoundResult.playerBlackjack => 'Blackjack! You win.',
       BlackjackRoundResult.dealerBlackjack => 'Dealer has Blackjack.',
     };
+  }
+
+  Future<void> _restorePersistentChips() async {
+    final progress = _progressController;
+    if (progress == null || _state.isRoundStarted) return;
+    final chips = await progress.getBlackjackChips();
+    if (chips == null || chips < 0 || _state.isRoundStarted) return;
+    _state = _state.copyWith(
+      chips: chips,
+      currentBet: chips > 0 ? _state.currentBet.clamp(1, chips) : 50,
+      isGameOver: chips == 0,
+      resultMessage: chips == 0
+          ? 'You are out of chips. Start a new game.'
+          : _state.resultMessage,
+    );
+    notifyListeners();
+  }
+
+  void _recordRound(BlackjackRoundResult result) {
+    if (_recordedRounds.contains(_state.roundNumber)) return;
+    _recordedRounds.add(_state.roundNumber);
+    final progress = _progressController;
+    if (progress == null) return;
+    final resultName = switch (result) {
+      BlackjackRoundResult.playerWin ||
+      BlackjackRoundResult.dealerBust ||
+      BlackjackRoundResult.playerBlackjack => 'win',
+      BlackjackRoundResult.push => 'push',
+      _ => 'loss',
+    };
+    unawaited(
+      progress.recordGameResult(
+        recordId:
+            'blackjack_${identityHashCode(this)}_${_gameSession}_${_state.roundNumber}',
+        gameType: 'blackjack',
+        gameName: 'Blackjack',
+        result: resultName,
+        opponent: 'Dealer',
+        playerScore: _state.playerScore,
+        opponentScore: _state.dealerScore,
+        extraData: {
+          'betAmount': _state.currentBet,
+          'finalChips': _state.chips,
+          'roundResult': result.name,
+          'playerHandValue': _state.playerScore,
+          'dealerHandValue': _state.dealerScore,
+        },
+      ),
+    );
   }
 }

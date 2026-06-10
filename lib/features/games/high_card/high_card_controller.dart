@@ -1,17 +1,26 @@
+import 'dart:async';
+
 import 'package:cardverse/features/games/engine/card_rules.dart';
 import 'package:cardverse/features/games/engine/deck_engine.dart';
 import 'package:cardverse/features/games/high_card/high_card_state.dart';
+import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/foundation.dart';
 
 class HighCardController extends ChangeNotifier {
-  HighCardController({DeckEngine? deckEngine})
-    : _deckEngine = deckEngine ?? DeckEngine() {
+  HighCardController({
+    DeckEngine? deckEngine,
+    ProgressController? progressController,
+  }) : _deckEngine = deckEngine ?? DeckEngine(),
+       _progressController =
+           progressController ?? ProgressController.maybeInstance {
     _state = _newGameState();
   }
 
   final DeckEngine _deckEngine;
+  final ProgressController? _progressController;
   late HighCardState _state;
   bool _isDrawing = false;
+  int _gameSession = 0;
 
   HighCardState get state => _state;
 
@@ -34,6 +43,7 @@ class HighCardController extends ChangeNotifier {
   }
 
   void startNewGame() {
+    _gameSession++;
     _state = _newGameState();
     notifyListeners();
   }
@@ -81,6 +91,32 @@ class HighCardController extends ChangeNotifier {
     if (_state.isGameOver) {
       _state = _state.copyWith(
         resultMessage: 'Deck finished! Start a new game.',
+      );
+    }
+    final resultName = switch (result) {
+      CardComparisonResult.playerWin => 'win',
+      CardComparisonResult.computerWin => 'loss',
+      CardComparisonResult.draw => 'draw',
+    };
+    final progress = _progressController;
+    if (progress != null) {
+      unawaited(
+        progress.recordGameResult(
+          recordId:
+              'high_card_${identityHashCode(this)}_'
+              '${_gameSession}_${_state.roundNumber}',
+          gameType: 'high_card',
+          gameName: 'High Card',
+          result: resultName,
+          opponent: 'Computer',
+          playerScore: playerCard.value,
+          opponentScore: computerCard.value,
+          extraData: {
+            'playerCard': playerCard.displayName,
+            'computerCard': computerCard.displayName,
+            'roundNumber': _state.roundNumber,
+          },
+        ),
       );
     }
     _isDrawing = false;

@@ -1,18 +1,28 @@
+import 'dart:async';
+
 import 'package:cardverse/features/games/engine/deck_engine.dart';
 import 'package:cardverse/features/games/models/playing_card_model.dart';
 import 'package:cardverse/features/games/war/war_rules.dart';
 import 'package:cardverse/features/games/war/war_state.dart';
+import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/foundation.dart';
 
 class WarController extends ChangeNotifier {
-  WarController({DeckEngine? deckEngine})
-    : _deckEngine = deckEngine ?? DeckEngine() {
+  WarController({
+    DeckEngine? deckEngine,
+    ProgressController? progressController,
+  }) : _deckEngine = deckEngine ?? DeckEngine(),
+       _progressController =
+           progressController ?? ProgressController.maybeInstance {
     _state = _newGameState();
   }
 
   final DeckEngine _deckEngine;
+  final ProgressController? _progressController;
   late WarState _state;
   bool _isPlaying = false;
+  bool _resultRecorded = false;
+  int _gameSession = 0;
 
   WarState get state => _state;
 
@@ -44,6 +54,8 @@ class WarController extends ChangeNotifier {
   }
 
   void startNewGame() {
+    _gameSession++;
+    _resultRecorded = false;
     _state = _newGameState();
     notifyListeners();
   }
@@ -87,6 +99,7 @@ class WarController extends ChangeNotifier {
     }
 
     checkGameOver(notify: false);
+    _recordGameIfFinished();
     _isPlaying = false;
     notifyListeners();
   }
@@ -245,6 +258,35 @@ class WarController extends ChangeNotifier {
     }
 
     if (notify) notifyListeners();
+  }
+
+  void _recordGameIfFinished() {
+    if (!_state.isGameOver || _resultRecorded) return;
+    _resultRecorded = true;
+    final progress = _progressController;
+    if (progress == null) return;
+    final result = switch (_state.winner) {
+      'Player' => 'win',
+      'Computer' => 'loss',
+      _ => 'draw',
+    };
+    unawaited(
+      progress.recordGameResult(
+        recordId: 'war_${identityHashCode(this)}_$_gameSession',
+        gameType: 'war',
+        gameName: 'War',
+        result: result,
+        opponent: 'Computer',
+        playerScore: _state.playerRoundsWon,
+        opponentScore: _state.computerRoundsWon,
+        extraData: {
+          'roundsPlayed': _state.roundNumber,
+          'warsTriggered': _state.warCount,
+          'playerFinalCards': _state.playerDeck.length,
+          'computerFinalCards': _state.computerDeck.length,
+        },
+      ),
+    );
   }
 
   void resetRoundCards({bool notify = true}) {
