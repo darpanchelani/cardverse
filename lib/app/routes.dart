@@ -1,5 +1,6 @@
 import 'package:cardverse/features/auth/login_screen.dart';
 import 'package:cardverse/features/auth/register_screen.dart';
+import 'package:cardverse/features/games/blackjack/blackjack_screen.dart';
 import 'package:cardverse/features/games/game_selection_screen.dart';
 import 'package:cardverse/features/games/high_card/high_card_screen.dart';
 import 'package:cardverse/features/games/war/war_screen.dart';
@@ -21,6 +22,7 @@ abstract final class AppRoutes {
   static const games = '/games';
   static const highCard = '/high-card';
   static const war = '/war';
+  static const blackjack = '/blackjack';
   static const createRoom = '/rooms/create';
   static const joinRoom = '/rooms/join';
   static const leaderboard = '/leaderboard';
@@ -51,6 +53,10 @@ abstract final class AppRoutes {
         builder: (context, state) => const HighCardScreen(),
       ),
       GoRoute(path: war, builder: (context, state) => const WarScreen()),
+      GoRoute(
+        path: blackjack,
+        builder: (context, state) => const BlackjackScreen(),
+      ),
       GoRoute(
         path: createRoom,
         builder: (context, state) => const CreateRoomScreen(),

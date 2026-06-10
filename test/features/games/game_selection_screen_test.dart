@@ -1,4 +1,5 @@
 import 'package:cardverse/app/theme.dart';
+import 'package:cardverse/features/games/blackjack/blackjack_screen.dart';
 import 'package:cardverse/features/games/game_selection_screen.dart';
 import 'package:cardverse/features/games/war/war_screen.dart';
 import 'package:flutter/material.dart';
@@ -31,19 +32,41 @@ void main() {
     expect(find.text('Win battles and collect all cards'), findsOneWidget);
   });
 
-  testWidgets('Blackjack and locked games retain coming-soon feedback', (
-    tester,
-  ) async {
+  testWidgets('Blackjack opens from the game selection screen', (tester) async {
+    final router = GoRouter(
+      initialLocation: '/games/computer',
+      routes: [
+        GoRoute(
+          path: '/games/:mode',
+          builder: (context, state) => GameSelectionScreen(
+            mode: state.pathParameters['mode'] ?? 'computer',
+          ),
+        ),
+        GoRoute(
+          path: '/blackjack',
+          builder: (context, state) => const BlackjackScreen(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(theme: AppTheme.darkTheme, routerConfig: router),
+    );
+
+    await tester.tap(find.text('Blackjack'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Beat the dealer without going over 21'), findsOneWidget);
+  });
+
+  testWidgets('locked games retain coming-soon feedback', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.darkTheme,
         home: const GameSelectionScreen(mode: 'computer'),
       ),
     );
-
-    await tester.tap(find.text('Blackjack'));
-    await tester.pump();
-    expect(find.text('Blackjack game coming soon.'), findsOneWidget);
 
     await tester.tap(find.text('Rummy'));
     await tester.pump();

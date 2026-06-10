@@ -89,7 +89,7 @@ class GameSelectionScreen extends StatelessWidget {
       case 'War':
         context.push(AppRoutes.war);
       case 'Blackjack':
-        _showMessage(context, 'Blackjack game coming soon.');
+        context.push(AppRoutes.blackjack);
     }
   }
 

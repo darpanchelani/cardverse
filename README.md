@@ -19,6 +19,7 @@ application develops.
 - Playable High Card game against a computer opponent
 - Shuffled 52-card deck, round results, score tracking, and game reset controls
 - Playable War game with card ownership, battles, repeated wars, and win tracking
+- Playable Blackjack with dealer rules, Ace-aware scoring, betting, and chips
 - Private room creation with game and player-count options
 - Room-code display, copy action, and join-room interface
 - Player leaderboard with rankings and win totals
@@ -34,9 +35,6 @@ Playable:
 
 - High Card
 - War
-
-Available in the game selection catalog:
-
 - Blackjack
 
 Coming soon:
@@ -212,7 +210,7 @@ The following systems are not connected yet:
 - Backend APIs and persistent storage
 - Firebase integration
 - Computer opponent intelligence beyond rule-based card play
-- Playable sessions for Blackjack and other card games
+- Playable sessions for the remaining card games
 - Online rooms and multiplayer networking
 - Real leaderboard and profile statistics
 
