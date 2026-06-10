@@ -54,9 +54,9 @@ void main() {
     await controller.toggleReady();
     expect(controller.canStartGame, isTrue);
 
-    final config = controller.startGame();
-    expect(config?.gameType, 'war');
-    expect(config?.players, hasLength(2));
+    expect(await controller.startGame(), isTrue);
+    expect(controller.gameStartingConfig?.gameType, 'war');
+    expect(controller.gameStartingConfig?.players, hasLength(2));
     expect(controller.currentRoom?.status, 'playing');
   });
 
@@ -68,10 +68,10 @@ void main() {
     expect(controller.messages, isEmpty);
 
     expect(await controller.sendMessage('Ready to play?'), isTrue);
-    await controller.addSystemMessage('Ali joined the room.');
+    expect(await controller.sendMessage('Second message'), isTrue);
 
     expect(controller.messages, hasLength(2));
-    expect(controller.messages.last.isSystemMessage, isTrue);
+    expect(controller.messages.last.message, 'Second message');
   });
 
   test('friend search and removal update local controller state', () async {

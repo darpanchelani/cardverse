@@ -1,14 +1,6 @@
-import 'package:cardverse/features/multiplayer/controllers/chat_controller.dart';
-import 'package:cardverse/features/multiplayer/controllers/friends_controller.dart';
-import 'package:cardverse/features/multiplayer/controllers/invite_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
-import 'package:cardverse/features/multiplayer/controllers/room_controller.dart';
 import 'package:cardverse/features/multiplayer/screens/friends_screen.dart';
 import 'package:cardverse/features/multiplayer/screens/room_lobby_screen.dart';
-import 'package:cardverse/features/multiplayer/services/dummy_chat_service.dart';
-import 'package:cardverse/features/multiplayer/services/dummy_friend_service.dart';
-import 'package:cardverse/features/multiplayer/services/dummy_room_service.dart';
-import 'package:cardverse/features/multiplayer/services/room_code_service.dart';
 import 'package:cardverse/features/rooms/join_room_screen.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
@@ -18,12 +10,7 @@ void main() {
   late MultiplayerControllers controllers;
 
   setUp(() async {
-    controllers = MultiplayerControllers(
-      friends: FriendsController(DummyFriendService()),
-      room: RoomController(DummyRoomService(RoomCodeService())),
-      chat: ChatController(DummyChatService()),
-      invites: InviteController(),
-    );
+    controllers = MultiplayerControllers.dummy();
     await controllers.friends.loadFriends();
     await controllers.invites.loadInvites();
   });

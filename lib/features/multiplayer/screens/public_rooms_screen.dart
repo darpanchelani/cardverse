@@ -68,36 +68,58 @@ class _PublicRoomsScreenState extends State<PublicRoomsScreen> {
                             color: AppColors.gold,
                           ),
                         )
-                      : rooms.isEmpty
-                      ? const _EmptyRooms()
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-                          itemCount: rooms.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final room = rooms[index];
-                            return RoomCardWidget(
-                              room: room,
-                              onJoin: () async {
-                                final joined = await controller.joinRoom(
-                                  room.roomCode,
-                                );
-                                if (!context.mounted) return;
-                                if (joined == null) {
-                                  _message(
-                                    context,
-                                    controller.errorMessage ??
-                                        'Could not join room.',
-                                  );
-                                  return;
-                                }
-                                context.push(
-                                  '${AppRoutes.roomLobby}/${room.roomCode}',
-                                );
-                              },
-                            );
-                          },
+                      : RefreshIndicator(
+                          onRefresh: controller.loadPublicRooms,
+                          child: rooms.isEmpty
+                              ? ListView(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  children: [
+                                    SizedBox(
+                                      height:
+                                          MediaQuery.sizeOf(context).height *
+                                          0.58,
+                                      child: _EmptyRooms(
+                                        message: controller.errorMessage,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ListView.separated(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    4,
+                                    20,
+                                    32,
+                                  ),
+                                  itemCount: rooms.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 12),
+                                  itemBuilder: (context, index) {
+                                    final room = rooms[index];
+                                    return RoomCardWidget(
+                                      room: room,
+                                      onJoin: () async {
+                                        final joined = await controller
+                                            .joinRoom(room.roomCode);
+                                        if (!context.mounted) return;
+                                        if (joined == null) {
+                                          _message(
+                                            context,
+                                            controller.errorMessage ??
+                                                'Could not join room.',
+                                          );
+                                          return;
+                                        }
+                                        context.push(
+                                          '${AppRoutes.roomLobby}/${room.roomCode}',
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
                         ),
                 ),
               ],
@@ -145,7 +167,9 @@ class _Filter extends StatelessWidget {
 }
 
 class _EmptyRooms extends StatelessWidget {
-  const _EmptyRooms();
+  const _EmptyRooms({this.message});
+
+  final String? message;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -155,7 +179,8 @@ class _EmptyRooms extends StatelessWidget {
         const Icon(Icons.public_off_rounded, size: 60, color: AppColors.gold),
         const SizedBox(height: 14),
         Text(
-          'No public rooms found',
+          message ?? 'No public rooms found',
+          textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleLarge,
         ),
       ],

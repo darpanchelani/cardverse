@@ -213,9 +213,6 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       return;
     }
     await controllers.chat.loadMessages(room.roomCode);
-    await controllers.chat.addSystemMessage(
-      'Room created. Invite friends or add a bot.',
-    );
     if (mounted) context.push('${AppRoutes.roomLobby}/${room.roomCode}');
   }
 }

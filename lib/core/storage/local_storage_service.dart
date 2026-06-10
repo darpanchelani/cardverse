@@ -8,6 +8,7 @@ abstract final class StorageKeys {
   static const leaderboard = 'leaderboard';
   static const blackjackChips = 'blackjack_chips';
   static const hasSeenOnboarding = 'has_seen_onboarding';
+  static const multiplayerUserId = 'multiplayer_user_id';
 }
 
 class LocalStorageService {

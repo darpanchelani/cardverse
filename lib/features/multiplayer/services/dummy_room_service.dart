@@ -1,14 +1,22 @@
 import 'package:cardverse/features/multiplayer/models/room_model.dart';
 import 'package:cardverse/features/multiplayer/models/room_player_model.dart';
+import 'package:cardverse/features/multiplayer/services/multiplayer_room_service.dart';
 import 'package:cardverse/features/multiplayer/services/room_code_service.dart';
 
-class DummyRoomService {
+class DummyRoomService implements MultiplayerRoomService {
   DummyRoomService(this._roomCodeService);
 
   // TODO: Replace with SocketRoomService in Phase 7.
   final RoomCodeService _roomCodeService;
   final Map<String, RoomModel> _rooms = {};
 
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<void> connectIfNeeded() async {}
+
+  @override
   Future<RoomModel> createRoom({
     required String gameType,
     required String gameName,
@@ -49,6 +57,7 @@ class DummyRoomService {
     return room;
   }
 
+  @override
   Future<RoomModel> joinRoom(String roomCode) async {
     final code = roomCode.trim().toUpperCase();
     var room = _rooms[code] ?? _joinedRoom(code);
@@ -77,6 +86,7 @@ class DummyRoomService {
     return room;
   }
 
+  @override
   Future<void> leaveRoom(String roomCode) async {
     final room = _rooms[roomCode];
     if (room == null) return;
@@ -87,6 +97,7 @@ class DummyRoomService {
     );
   }
 
+  @override
   Future<RoomModel> toggleReady(RoomModel room, String playerId) async {
     final players = room.players
         .map(
@@ -105,6 +116,7 @@ class DummyRoomService {
     return updated;
   }
 
+  @override
   Future<RoomModel> addBot(RoomModel room) async {
     if (!room.allowBots) throw StateError('Bots are disabled for this room.');
     if (room.isFull) throw StateError('This room is already full.');
@@ -130,6 +142,7 @@ class DummyRoomService {
     return updated;
   }
 
+  @override
   Future<RoomModel> removePlayer(RoomModel room, String playerId) async {
     final updated = room.copyWith(
       players: room.players.where((player) => player.id != playerId).toList(),
@@ -139,6 +152,7 @@ class DummyRoomService {
     return updated;
   }
 
+  @override
   Future<List<RoomModel>> getPublicRooms() async {
     if (_rooms.values.where((room) => !room.isPrivate).length < 5) {
       for (final room in _buildPublicRooms()) {
@@ -147,6 +161,27 @@ class DummyRoomService {
     }
     return _rooms.values.where((room) => !room.isPrivate).toList();
   }
+
+  @override
+  Future<RoomModel> startGame(RoomModel room) async {
+    if (room.players.length < 2 || !room.allPlayersReady) {
+      throw StateError('Waiting for all players to be ready.');
+    }
+    final updated = room.copyWith(status: 'playing');
+    _rooms[room.roomCode] = updated;
+    return updated;
+  }
+
+  @override
+  void listenRoomEvents({
+    required void Function(RoomModel room) onRoomUpdated,
+    required void Function(List<RoomModel> rooms) onPublicRooms,
+    required void Function(RoomModel room) onGameStarting,
+    required void Function(String message) onError,
+  }) {}
+
+  @override
+  void disposeListeners() {}
 
   String _uniqueCode() {
     var code = _roomCodeService.generateRoomCode();

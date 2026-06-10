@@ -140,7 +140,6 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
       return;
     }
     await controllers.chat.loadMessages(room.roomCode);
-    await controllers.chat.addSystemMessage('Guest Player joined the room.');
     if (mounted) context.push('${AppRoutes.roomLobby}/${room.roomCode}');
   }
 }

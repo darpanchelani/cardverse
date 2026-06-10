@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 
 class ChatInputWidget extends StatefulWidget {
-  const ChatInputWidget({required this.onSend, super.key});
+  const ChatInputWidget({
+    required this.onSend,
+    super.key,
+    this.enabled = true,
+    this.onTypingStart,
+    this.onTypingStop,
+  });
 
   final Future<bool> Function(String message) onSend;
+  final bool enabled;
+  final VoidCallback? onTypingStart;
+  final VoidCallback? onTypingStop;
 
   @override
   State<ChatInputWidget> createState() => _ChatInputWidgetState();
@@ -20,7 +29,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }
 
   Future<void> _send() async {
-    if (_controller.text.trim().isEmpty || _sending) return;
+    if (!widget.enabled || _controller.text.trim().isEmpty || _sending) return;
     setState(() => _sending = true);
     final sent = await widget.onSend(_controller.text);
     if (sent) _controller.clear();
@@ -33,8 +42,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
       Expanded(
         child: TextField(
           controller: _controller,
+          enabled: widget.enabled,
           textInputAction: TextInputAction.send,
           onSubmitted: (_) => _send(),
+          onChanged: (value) {
+            if (value.trim().isEmpty) {
+              widget.onTypingStop?.call();
+            } else {
+              widget.onTypingStart?.call();
+            }
+          },
           decoration: const InputDecoration(
             hintText: 'Message the room',
             prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
@@ -44,7 +61,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
       const SizedBox(width: 8),
       IconButton.filled(
         tooltip: 'Send message',
-        onPressed: _sending ? null : _send,
+        onPressed: _sending || !widget.enabled ? null : _send,
         icon: const Icon(Icons.send_rounded),
       ),
     ],

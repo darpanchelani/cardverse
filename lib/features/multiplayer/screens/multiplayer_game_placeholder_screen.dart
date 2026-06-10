@@ -13,7 +13,8 @@ class MultiplayerGamePlaceholderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final room = MultiplayerScope.of(context).room.currentRoom;
+    final controllers = MultiplayerScope.of(context);
+    final room = controllers.room.currentRoom;
     if (room == null || room.roomCode != roomCode) {
       return Scaffold(
         appBar: AppBar(title: const Text('Multiplayer')),
@@ -58,7 +59,7 @@ class MultiplayerGamePlaceholderScreen extends StatelessWidget {
                 border: Border.all(color: AppColors.gold),
               ),
               child: const Text(
-                'This room is ready. Real-time multiplayer gameplay will be implemented in the next phase.',
+                'Real-time multiplayer game logic will be added in the next phase.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontFamily: 'Arial', height: 1.5),
               ),
@@ -72,7 +73,7 @@ class MultiplayerGamePlaceholderScreen extends StatelessWidget {
                 child: RoomPlayerSlotWidget(
                   seatIndex: player.seatIndex,
                   player: player,
-                  isCurrentUser: player.id == 'current_user',
+                  isCurrentUser: player.id == controllers.room.localUserId,
                 ),
               ),
             ),

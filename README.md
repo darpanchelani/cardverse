@@ -1,11 +1,10 @@
 # CardVerse
 
-CardVerse is an offline-first Flutter card games hub with a dark card-table
-interface. Players can play classic games against computer opponents, earn
-rewards, unlock achievements, build persistent profile statistics, review match
-history, and compare their progress on a local leaderboard.
-It also includes a complete simulated multiplayer frontend for creating rooms,
-inviting friends, chatting, and preparing a lobby before a match.
+CardVerse is a Flutter card games hub with offline games, persistent local
+progress, and real-time multiplayer room infrastructure. Players can compete
+against computer opponents, earn rewards, unlock achievements, review match
+history, and create synchronized Socket.IO rooms with live chat and ready
+states.
 
 ## Features
 
@@ -27,14 +26,15 @@ inviting friends, chatting, and preparing a lobby before a match.
 - Corrupt or missing local data fallback to safe defaults
 - Private and public room creation with game, timer, difficulty, chat, and bot settings
 - Validated six-character room codes with copy and join flows
-- Public room browser with game filters and local dummy rooms
+- Public room browser with live backend room data and game filters
 - Friends list with search, presence status, removal, and room invites
 - Local invitation inbox with accept and decline actions
-- Multiplayer room lobby with player slots, host and ready badges, and bot controls
-- Local room chat with user and system messages
-- Ready and start-game flow with a multiplayer game placeholder
-- Backend-neutral room, friend, invite, chat, and game configuration models
-- Dummy service boundaries prepared for later backend and Socket.IO replacement
+- Real-time multiplayer room lobby with synchronized player slots and ready states
+- Live room chat, typing indicators, and system messages through Socket.IO
+- Host-controlled bot simulation and synchronized start-game events
+- In-memory Node.js room, player, and chat services
+- Connection, reconnection, offline-state, and backend-error UI
+- Dummy friends and invitation data retained until account APIs are added
 - Profile reset with confirmation
 - Responsive game grid designed for mobile and wider displays
 - Reusable buttons, text fields, game cards, colors, and strings
@@ -67,6 +67,8 @@ Coming soon:
 - Material 3
 - `go_router` for navigation
 - `shared_preferences` for local JSON persistence
+- Node.js and Express
+- Socket.IO and `socket_io_client`
 
 ## Prerequisites
 
@@ -76,6 +78,7 @@ Install the following before running the project:
 - Xcode for macOS and iOS development
 - Android Studio and Android SDK for Android development
 - Chrome for web development
+- Node.js 18 or newer and npm for multiplayer development
 
 Verify your environment:
 
@@ -106,24 +109,52 @@ flutter pub get
 flutter devices
 ```
 
+### Start the Backend
+
+Open a separate Terminal window:
+
+```bash
+cd /Users/darpanchelani/Downloads/Softotic/cardverse/backend
+npm install
+npm run dev
+```
+
+The server runs at `http://localhost:5000`. Verify it with:
+
+```bash
+curl http://localhost:5000/health
+```
+
+On macOS, AirPlay Receiver may already use port `5000`. Either disable AirPlay
+Receiver in System Settings or run the backend on another port:
+
+```bash
+PORT=5050 npm run dev
+```
+
+Use the same port in `SOCKET_BASE_URL` when starting Flutter.
+
 ### Run on macOS
 
 ```bash
-flutter run -d macos
+flutter run -d macos \
+  --dart-define=SOCKET_BASE_URL=http://localhost:5000
 ```
 
 ### Run on iOS Simulator
 
 ```bash
 open -a Simulator
-flutter run
+flutter run \
+  --dart-define=SOCKET_BASE_URL=http://localhost:5000
 ```
 
 To target a specific simulator:
 
 ```bash
 flutter devices
-flutter run -d <device-id>
+flutter run -d <device-id> \
+  --dart-define=SOCKET_BASE_URL=http://localhost:5000
 ```
 
 ### Run on Android
@@ -133,13 +164,19 @@ then run:
 
 ```bash
 flutter devices
-flutter run -d <device-id>
+flutter run -d <device-id> \
+  --dart-define=SOCKET_BASE_URL=http://10.0.2.2:5000
 ```
+
+For a physical Android or iOS device, replace the URL with the Mac's local
+network IP, for example `http://192.168.1.20:5000`. The device and Mac must be
+on the same network.
 
 ### Run in Chrome
 
 ```bash
-flutter run -d chrome
+flutter run -d chrome \
+  --dart-define=SOCKET_BASE_URL=http://localhost:5000
 ```
 
 If Flutter has not been added to `PATH`, replace `flutter` in these commands
@@ -182,6 +219,9 @@ lib/
     └── splash/
 ```
 
+The Node.js backend lives in `backend/` and contains Express routes, Socket.IO
+handlers, in-memory room/chat services, validators, and integration tests.
+
 ## Navigation Flow
 
 ```text
@@ -223,23 +263,30 @@ Game rewards:
 
 Blackjack betting chips remain separate from profile reward coins.
 
-## Multiplayer Preview
+## Multiplayer
 
-Multiplayer screens currently use in-memory dummy services. They support:
+Rooms and chat use the Node.js Socket.IO backend. Active data is kept in server
+memory, so restarting the backend clears rooms and messages. The app supports:
 
 - Creating private or public rooms
 - Joining rooms by code
 - Browsing public rooms
-- Adding bots and toggling player readiness
+- Synchronized player slots, bots, and readiness across clients
 - Inviting local dummy friends
 - Accepting or declining dummy invites
-- Sending local room chat messages
-- Entering a multiplayer game placeholder once all players are ready
+- Sending real-time room chat messages
+- Starting a synchronized multiplayer placeholder once all players are ready
 
-No network traffic, backend service, Firebase integration, or Socket.IO
-connection is used. Controllers depend on service classes so the dummy room,
-chat, and friend implementations can be replaced later without moving network
-logic into UI widgets.
+Friends and invites still use local dummy data. Authentication and multiplayer
+card-game logic are not implemented. No Firebase or database is used.
+
+### Test With Multiple Clients
+
+1. Start the backend.
+2. Run CardVerse on two emulators, simulators, devices, or browser origins.
+3. Create a room on the first client.
+4. Join with the six-character code on the second client.
+5. Toggle ready, exchange chat messages, and start from the host client.
 
 ## Quality Checks
 
@@ -263,17 +310,18 @@ flutter test
 
 ## Implementation Status
 
-The app currently supports offline play and local progress. The following
-systems are intentionally not included:
+The app supports offline play, local progress, and real-time room/lobby
+synchronization. The following systems are intentionally not included:
 
 - Real authentication and user accounts
 - Backend APIs and cloud synchronization
 - Firebase integration
+- Database persistence for server rooms and chat
 - Playable sessions for the remaining card games
-- Real-time room synchronization and multiplayer gameplay
-- Socket.IO or other networking transport
+- Real-time card-game logic after a room starts
 
-Leaderboard opponents and room codes use local sample data. The current user's
-profile, rewards, statistics, achievements, and match history are real local
-records created by gameplay. Friends, invites, active rooms, lobby chat, and
-public room listings are simulated in memory.
+Leaderboard opponents, friends, and invites use local sample data. Profile
+rewards, statistics, achievements, and match history are persistent local
+records. Active rooms, public room listings, readiness, bots, start events, and
+chat are synchronized through the Socket.IO backend and remain in server memory
+until it restarts.

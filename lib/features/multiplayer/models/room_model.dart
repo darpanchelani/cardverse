@@ -1,4 +1,5 @@
 import 'package:cardverse/features/multiplayer/models/room_player_model.dart';
+import 'package:cardverse/features/multiplayer/models/chat_message_model.dart';
 
 class RoomModel {
   const RoomModel({
@@ -15,6 +16,7 @@ class RoomModel {
     required this.status,
     required this.createdAt,
     required this.settings,
+    this.chatMessages = const [],
   });
 
   factory RoomModel.fromJson(Map<String, dynamic> json) => RoomModel(
@@ -38,6 +40,13 @@ class RoomModel {
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     settings: Map<String, dynamic>.from(json['settings'] as Map? ?? const {}),
+    chatMessages: (json['chatMessages'] as List<dynamic>? ?? const [])
+        .map(
+          (message) => ChatMessageModel.fromJson(
+            Map<String, dynamic>.from(message as Map),
+          ),
+        )
+        .toList(),
   );
 
   final String roomCode;
@@ -53,6 +62,7 @@ class RoomModel {
   final String status;
   final DateTime createdAt;
   final Map<String, dynamic> settings;
+  final List<ChatMessageModel> chatMessages;
 
   bool get hasEmptySeats => players.length < maxPlayers;
   bool get isFull => players.length >= maxPlayers;
@@ -74,6 +84,7 @@ class RoomModel {
     'status': status,
     'createdAt': createdAt.toIso8601String(),
     'settings': settings,
+    'chatMessages': chatMessages.map((message) => message.toJson()).toList(),
   };
 
   RoomModel copyWith({
@@ -90,6 +101,7 @@ class RoomModel {
     String? status,
     DateTime? createdAt,
     Map<String, dynamic>? settings,
+    List<ChatMessageModel>? chatMessages,
   }) => RoomModel(
     roomCode: roomCode ?? this.roomCode,
     roomName: roomName ?? this.roomName,
@@ -104,5 +116,6 @@ class RoomModel {
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     settings: settings ?? this.settings,
+    chatMessages: chatMessages ?? this.chatMessages,
   );
 }

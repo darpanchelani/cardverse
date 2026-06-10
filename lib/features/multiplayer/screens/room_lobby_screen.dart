@@ -1,6 +1,8 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/network/socket_connection_state.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
+import 'package:cardverse/features/multiplayer/controllers/room_controller.dart';
 import 'package:cardverse/features/multiplayer/models/room_model.dart';
 import 'package:cardverse/features/multiplayer/models/room_player_model.dart';
 import 'package:cardverse/features/multiplayer/widgets/chat_bubble_widget.dart';
@@ -24,10 +26,19 @@ class RoomLobbyScreen extends StatefulWidget {
 
 class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
   bool _initialized = false;
+  RoomController? _roomController;
+  int _handledGameStartRevision = 0;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final roomController = MultiplayerScope.of(context).room;
+    if (_roomController != roomController) {
+      _roomController?.removeListener(_handleGameStart);
+      _roomController = roomController;
+      _handledGameStartRevision = roomController.gameStartRevision;
+      roomController.addListener(_handleGameStart);
+    }
     if (_initialized) return;
     _initialized = true;
     _initialize();
@@ -41,26 +52,47 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     }
     if (!mounted || room == null) return;
     await controllers.chat.loadMessages(room.roomCode);
-    if (controllers.chat.messages.isEmpty) {
-      await controllers.chat.addSystemMessage(
-        controllers.room.isCurrentUserHost
-            ? 'Room created. Invite friends or add a bot.'
-            : 'Guest Player joined the room.',
-      );
+  }
+
+  void _handleGameStart() {
+    final controller = _roomController;
+    if (!mounted ||
+        controller == null ||
+        controller.gameStartRevision <= _handledGameStartRevision ||
+        controller.gameStartingConfig?.roomCode != widget.roomCode) {
+      return;
     }
+    _handledGameStartRevision = controller.gameStartRevision;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.push('${AppRoutes.multiplayerPlaceholder}/${widget.roomCode}');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _roomController?.removeListener(_handleGameStart);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final controllers = MultiplayerScope.of(context);
     return AnimatedBuilder(
-      animation: controllers.room,
+      animation: Listenable.merge([controllers.room, controllers.connection]),
       builder: (context, child) {
         final room = controllers.room.currentRoom;
+        final connected = controllers.room.isConnected;
         return Scaffold(
           appBar: AppBar(
             title: const Text('Room Lobby'),
             actions: [
+              _ConnectionIndicator(
+                state: connected
+                    ? SocketConnectionState.connected
+                    : controllers.connection.state,
+              ),
               IconButton(
                 tooltip: 'Leave room',
                 onPressed: room == null ? null : () => _leaveRoom(controllers),
@@ -78,6 +110,13 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 6, 20, 36),
                     children: [
+                      if (!connected) ...[
+                        _DisconnectedBanner(
+                          isConnecting: controllers.connection.isConnecting,
+                          onReconnect: controllers.connection.reconnect,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       _RoomHeader(
                         roomName: room.roomName,
                         roomCode: room.roomCode,
@@ -119,17 +158,17 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                           child: RoomPlayerSlotWidget(
                             seatIndex: seatIndex,
                             player: player,
-                            isCurrentUser: player?.id == 'current_user',
+                            isCurrentUser:
+                                player?.id == controllers.room.localUserId,
                             onRemove:
-                                controllers.room.isCurrentUserHost &&
+                                connected &&
+                                    controllers.room.isCurrentUserHost &&
                                     player != null &&
-                                    player.id != 'current_user'
+                                    player.id != controllers.room.localUserId &&
+                                    player.isBot
                                 ? () async {
                                     await controllers.room.removePlayer(
                                       player!.id,
-                                    );
-                                    await controllers.chat.addSystemMessage(
-                                      '${player.username} left the room.',
                                     );
                                   }
                                 : null,
@@ -141,27 +180,16 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                       const SizedBox(height: 20),
                       _LobbyControls(
                         room: room,
+                        localUserId: controllers.room.localUserId,
                         isHost: controllers.room.isCurrentUserHost,
                         canStart: controllers.room.canStartGame,
-                        onReady: () async {
-                          final changed = await controllers.room.toggleReady();
-                          if (!changed) return;
-                          final player = _currentPlayer(
-                            controllers.room.currentRoom?.players ?? const [],
-                          );
-                          await controllers.chat.addSystemMessage(
-                            player?.isReady == true
-                                ? 'Guest Player is ready.'
-                                : 'Guest Player is not ready.',
-                          );
+                        isConnected: connected,
+                        onReady: () {
+                          controllers.room.toggleReady();
                         },
                         onAddBot: () async {
                           final added = await controllers.room.addBot();
-                          if (added) {
-                            await controllers.chat.addSystemMessage(
-                              'A card bot joined the room.',
-                            );
-                          } else if (mounted) {
+                          if (!added && mounted) {
                             _message(
                               controllers.room.errorMessage ??
                                   'Could not add a bot.',
@@ -169,15 +197,14 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                           }
                         },
                         onInvite: () => _showInviteSheet(controllers),
-                        onStart: () {
-                          final config = controllers.room.startGame();
-                          if (config == null) {
-                            _message('Waiting for all players to be ready.');
-                            return;
+                        onStart: () async {
+                          final started = await controllers.room.startGame();
+                          if (!started && mounted) {
+                            _message(
+                              controllers.room.errorMessage ??
+                                  'Waiting for all players to be ready.',
+                            );
                           }
-                          context.push(
-                            '${AppRoutes.multiplayerPlaceholder}/${room.roomCode}',
-                          );
                         },
                       ),
                       if (room.allowChat) ...[
@@ -196,7 +223,11 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        _ChatPanel(controllers: controllers),
+                        _ChatPanel(
+                          controllers: controllers,
+                          isConnected: connected,
+                          localUserId: controllers.room.localUserId,
+                        ),
                       ],
                     ],
                   ),
@@ -293,7 +324,6 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await controllers.chat.addSystemMessage('Guest Player left the room.');
     await controllers.room.leaveRoom();
     controllers.chat.clearMessages();
     if (mounted) context.go(AppRoutes.home);
@@ -309,30 +339,37 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
 class _LobbyControls extends StatelessWidget {
   const _LobbyControls({
     required this.room,
+    required this.localUserId,
     required this.isHost,
     required this.canStart,
     required this.onReady,
     required this.onAddBot,
     required this.onInvite,
     required this.onStart,
+    required this.isConnected,
   });
 
   final RoomModel room;
+  final String localUserId;
   final bool isHost;
   final bool canStart;
   final VoidCallback onReady;
   final VoidCallback onAddBot;
   final VoidCallback onInvite;
   final VoidCallback onStart;
+  final bool isConnected;
 
   @override
   Widget build(BuildContext context) {
-    final currentPlayer = _currentPlayer(room.players);
+    final currentPlayer = _currentPlayer(
+      room.players,
+      localUserId: localUserId,
+    );
     return Column(
       children: [
         ReadyButtonWidget(
           isReady: currentPlayer?.isReady ?? false,
-          onPressed: onReady,
+          onPressed: isConnected ? onReady : null,
         ),
         const SizedBox(height: 10),
         Row(
@@ -340,7 +377,9 @@ class _LobbyControls extends StatelessWidget {
             if (room.allowBots)
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: room.hasEmptySeats ? onAddBot : null,
+                  onPressed: isConnected && room.hasEmptySeats
+                      ? onAddBot
+                      : null,
                   icon: const Icon(Icons.smart_toy_outlined),
                   label: const Text('Add Bot'),
                 ),
@@ -348,7 +387,7 @@ class _LobbyControls extends StatelessWidget {
             if (room.allowBots) const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: onInvite,
+                onPressed: isConnected ? onInvite : null,
                 icon: const Icon(Icons.person_add_alt_1_rounded),
                 label: const Text('Invite'),
               ),
@@ -360,7 +399,7 @@ class _LobbyControls extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: onStart,
+              onPressed: isConnected ? onStart : null,
               style: FilledButton.styleFrom(
                 backgroundColor: canStart
                     ? AppColors.gold
@@ -380,9 +419,15 @@ class _LobbyControls extends StatelessWidget {
 }
 
 class _ChatPanel extends StatelessWidget {
-  const _ChatPanel({required this.controllers});
+  const _ChatPanel({
+    required this.controllers,
+    required this.isConnected,
+    required this.localUserId,
+  });
 
   final MultiplayerControllers controllers;
+  final bool isConnected;
+  final String localUserId;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -415,13 +460,35 @@ class _ChatPanel extends StatelessWidget {
                       final message = controllers.chat.messages[index];
                       return ChatBubbleWidget(
                         message: message,
-                        isCurrentUser: message.senderId == 'current_user',
+                        isCurrentUser: message.senderId == localUserId,
                       );
                     },
                   ),
           ),
+          if (controllers.chat.isTyping &&
+              controllers.chat.typingUsername != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '${controllers.chat.typingUsername} is typing...',
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
+                    fontFamily: 'Arial',
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
           const SizedBox(height: 10),
-          ChatInputWidget(onSend: controllers.chat.sendMessage),
+          ChatInputWidget(
+            onSend: controllers.chat.sendMessage,
+            enabled: isConnected,
+            onTypingStart: controllers.chat.sendTypingStart,
+            onTypingStop: controllers.chat.sendTypingStop,
+          ),
         ],
       ),
     ),
@@ -536,9 +603,85 @@ class _MissingRoom extends StatelessWidget {
   );
 }
 
-RoomPlayerModel? _currentPlayer(List<RoomPlayerModel> players) {
+RoomPlayerModel? _currentPlayer(
+  List<RoomPlayerModel> players, {
+  required String localUserId,
+}) {
   for (final player in players) {
-    if (player.id == 'current_user') return player;
+    if (player.id == localUserId) return player;
   }
   return null;
+}
+
+class _ConnectionIndicator extends StatelessWidget {
+  const _ConnectionIndicator({required this.state});
+
+  final SocketConnectionState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (state) {
+      SocketConnectionState.connected => ('Connected', Colors.greenAccent),
+      SocketConnectionState.connecting ||
+      SocketConnectionState.reconnecting => ('Connecting', AppColors.gold),
+      _ => ('Offline', AppColors.danger),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontFamily: 'Arial',
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DisconnectedBanner extends StatelessWidget {
+  const _DisconnectedBanner({
+    required this.isConnecting,
+    required this.onReconnect,
+  });
+
+  final bool isConnecting;
+  final VoidCallback onReconnect;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(13),
+    decoration: BoxDecoration(
+      color: AppColors.danger.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.danger),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.cloud_off_rounded, color: AppColors.danger),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Text(
+            'Disconnected from server. Trying to reconnect...',
+            style: TextStyle(fontFamily: 'Arial'),
+          ),
+        ),
+        TextButton(
+          onPressed: isConnecting ? null : onReconnect,
+          child: const Text('Retry'),
+        ),
+      ],
+    ),
+  );
 }

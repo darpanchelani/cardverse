@@ -1,22 +1,34 @@
 import 'package:cardverse/features/multiplayer/models/multiplayer_game_config_model.dart';
 import 'package:cardverse/features/multiplayer/models/room_model.dart';
-import 'package:cardverse/features/multiplayer/services/dummy_room_service.dart';
+import 'package:cardverse/features/multiplayer/services/multiplayer_room_service.dart';
 import 'package:flutter/foundation.dart';
 
 class RoomController extends ChangeNotifier {
-  RoomController(this._service);
+  RoomController(this._service, {this.localUserId = 'current_user'}) {
+    _service.listenRoomEvents(
+      onRoomUpdated: _onRoomUpdated,
+      onPublicRooms: _onPublicRooms,
+      onGameStarting: _onGameStarting,
+      onError: _onError,
+    );
+  }
 
-  final DummyRoomService _service;
+  final MultiplayerRoomService _service;
+  final String localUserId;
   bool _isActing = false;
 
   RoomModel? currentRoom;
   List<RoomModel> publicRooms = [];
   bool isLoading = false;
   String? errorMessage;
+  MultiplayerGameConfigModel? gameStartingConfig;
+  int gameStartRevision = 0;
+
+  bool get isConnected => _service.isConnected;
 
   bool get isCurrentUserHost =>
       currentRoom?.players.any(
-        (player) => player.id == 'current_user' && player.isHost,
+        (player) => player.id == localUserId && player.isHost,
       ) ??
       false;
 
@@ -25,7 +37,21 @@ class RoomController extends ChangeNotifier {
     return room != null &&
         isCurrentUserHost &&
         room.players.length >= 2 &&
-        room.allPlayersReady;
+        room.players
+            .where((player) => !player.isBot)
+            .every((player) => player.isReady);
+  }
+
+  Future<bool> connectIfNeeded() async {
+    try {
+      await _service.connectIfNeeded();
+      notifyListeners();
+      return isConnected;
+    } catch (error) {
+      errorMessage = _message(error, 'Backend is unavailable.');
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<RoomModel?> createRoom({
@@ -38,11 +64,9 @@ class RoomController extends ChangeNotifier {
     required Map<String, dynamic> settings,
   }) async {
     if (_isActing) return currentRoom;
-    _isActing = true;
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
+    _beginAction();
     try {
+      await _service.connectIfNeeded();
       currentRoom = await _service.createRoom(
         gameType: gameType,
         gameName: gameName,
@@ -53,35 +77,26 @@ class RoomController extends ChangeNotifier {
         settings: settings,
       );
       return currentRoom;
-    } catch (_) {
-      errorMessage = 'Could not create the room.';
+    } catch (error) {
+      errorMessage = _message(error, 'Could not create the room.');
       return null;
     } finally {
-      _isActing = false;
-      isLoading = false;
-      notifyListeners();
+      _endAction();
     }
   }
 
   Future<RoomModel?> joinRoom(String roomCode) async {
     if (_isActing) return currentRoom;
-    _isActing = true;
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
+    _beginAction();
     try {
+      await _service.connectIfNeeded();
       currentRoom = await _service.joinRoom(roomCode);
       return currentRoom;
-    } on StateError catch (error) {
-      errorMessage = error.message;
-      return null;
-    } catch (_) {
-      errorMessage = 'Could not join this room.';
+    } catch (error) {
+      errorMessage = _message(error, 'Could not join this room.');
       return null;
     } finally {
-      _isActing = false;
-      isLoading = false;
-      notifyListeners();
+      _endAction();
     }
   }
 
@@ -92,6 +107,8 @@ class RoomController extends ChangeNotifier {
     try {
       await _service.leaveRoom(room.roomCode);
       currentRoom = null;
+    } catch (error) {
+      errorMessage = _message(error, 'Could not leave the room.');
     } finally {
       _isActing = false;
       notifyListeners();
@@ -103,9 +120,10 @@ class RoomController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
+      await _service.connectIfNeeded();
       publicRooms = await _service.getPublicRooms();
-    } catch (_) {
-      errorMessage = 'Could not load public rooms.';
+    } catch (error) {
+      errorMessage = _message(error, 'Could not load public rooms.');
     } finally {
       isLoading = false;
       notifyListeners();
@@ -114,11 +132,14 @@ class RoomController extends ChangeNotifier {
 
   Future<bool> toggleReady() async {
     final room = currentRoom;
-    if (room == null || _isActing) return false;
+    if (room == null || _isActing || !isConnected) return false;
     _isActing = true;
     try {
-      currentRoom = await _service.toggleReady(room, 'current_user');
+      currentRoom = await _service.toggleReady(room, localUserId);
       return true;
+    } catch (error) {
+      errorMessage = _message(error, 'Could not update ready status.');
+      return false;
     } finally {
       _isActing = false;
       notifyListeners();
@@ -127,14 +148,14 @@ class RoomController extends ChangeNotifier {
 
   Future<bool> addBot() async {
     final room = currentRoom;
-    if (room == null || _isActing) return false;
+    if (room == null || _isActing || !isConnected) return false;
     _isActing = true;
     errorMessage = null;
     try {
       currentRoom = await _service.addBot(room);
       return true;
-    } on StateError catch (error) {
-      errorMessage = error.message;
+    } catch (error) {
+      errorMessage = _message(error, 'Could not add a bot.');
       return false;
     } finally {
       _isActing = false;
@@ -144,34 +165,102 @@ class RoomController extends ChangeNotifier {
 
   Future<void> removePlayer(String playerId) async {
     final room = currentRoom;
-    if (room == null || _isActing) return;
+    if (room == null || _isActing || !isConnected) return;
     _isActing = true;
     try {
       currentRoom = await _service.removePlayer(room, playerId);
+    } catch (error) {
+      errorMessage = _message(error, 'Could not remove the bot.');
     } finally {
       _isActing = false;
       notifyListeners();
     }
   }
 
-  MultiplayerGameConfigModel? startGame() {
+  Future<bool> startGame() async {
     final room = currentRoom;
-    if (room == null || !canStartGame) return null;
-    currentRoom = room.copyWith(status: 'playing');
-    notifyListeners();
-    return MultiplayerGameConfigModel(
-      roomCode: room.roomCode,
-      gameType: room.gameType,
-      gameName: room.gameName,
-      maxPlayers: room.maxPlayers,
-      players: room.players,
-      settings: room.settings,
-    );
+    if (room == null || _isActing || !isConnected) return false;
+    _isActing = true;
+    final revisionBeforeRequest = gameStartRevision;
+    try {
+      currentRoom = await _service.startGame(room);
+      if (gameStartRevision == revisionBeforeRequest && currentRoom != null) {
+        _onGameStarting(currentRoom!);
+      }
+      return true;
+    } catch (error) {
+      errorMessage = _message(error, 'Could not start the game.');
+      return false;
+    } finally {
+      _isActing = false;
+      notifyListeners();
+    }
   }
 
   void clearRoom() {
     currentRoom = null;
     errorMessage = null;
+    gameStartingConfig = null;
     notifyListeners();
+  }
+
+  void _onRoomUpdated(RoomModel room) {
+    if (currentRoom == null || currentRoom!.roomCode == room.roomCode) {
+      currentRoom = room;
+      notifyListeners();
+    }
+  }
+
+  void _onPublicRooms(List<RoomModel> rooms) {
+    publicRooms = rooms;
+    notifyListeners();
+  }
+
+  void _onGameStarting(RoomModel room) {
+    currentRoom = room;
+    gameStartingConfig = _config(room);
+    gameStartRevision++;
+    notifyListeners();
+  }
+
+  void _onError(String message) {
+    errorMessage = message;
+    notifyListeners();
+  }
+
+  MultiplayerGameConfigModel _config(RoomModel room) =>
+      MultiplayerGameConfigModel(
+        roomCode: room.roomCode,
+        gameType: room.gameType,
+        gameName: room.gameName,
+        maxPlayers: room.maxPlayers,
+        players: room.players,
+        settings: room.settings,
+      );
+
+  void _beginAction() {
+    _isActing = true;
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  void _endAction() {
+    _isActing = false;
+    isLoading = false;
+    notifyListeners();
+  }
+
+  String _message(Object error, String fallback) {
+    if (error is StateError) return error.message;
+    return error.toString().replaceFirst('Exception: ', '').trim().isEmpty
+        ? fallback
+        : error.toString().replaceFirst('Exception: ', '');
+  }
+
+  @override
+  void dispose() {
+    _service.disposeListeners();
+    super.dispose();
   }
 }
