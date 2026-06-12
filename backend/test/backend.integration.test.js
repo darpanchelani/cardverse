@@ -8,6 +8,7 @@ const {
   roomService,
   highCardService,
   warService,
+  blackjackService,
 } = require("../src/socket");
 
 let server;
@@ -26,6 +27,7 @@ beforeEach(() => {
   roomService.rooms.clear();
   highCardService.activeHighCardGames.clear();
   warService.activeWarGames.clear();
+  blackjackService.activeBlackjackGames.clear();
 });
 
 after(async () => {
@@ -325,6 +327,91 @@ test("War bot participates while server retains all decks", async () => {
   );
 });
 
+test("online Blackjack synchronizes betting, dealer play, results, and rematch", async () => {
+  const host = await connectUser("blackjack_host", "Blackjack Host");
+  const guest = await connectUser("blackjack_guest", "Blackjack Guest");
+  const created = await emitAck(host, "room:create", {
+    gameType: "blackjack",
+    maxPlayers: 2,
+    isPrivate: true,
+    allowBots: true,
+    allowChat: true,
+    settings: {
+      maxRounds: 3,
+      startingChips: 1000,
+      minimumBet: 10,
+      dealerRule: "stand_on_17",
+    },
+  });
+  const roomCode = created.room.roomCode;
+  await emitAck(guest, "room:join", { roomCode });
+  await emitAck(host, "room:toggle_ready", { roomCode });
+  await emitAck(guest, "room:toggle_ready", { roomCode });
+
+  const startEvent = once(guest, "room:game_starting");
+  await emitAck(host, "room:start_game", { roomCode });
+  assert.equal((await startEvent).screen, "blackjack_multiplayer");
+  const initial = blackjackService.getGame(roomCode);
+  initial.maxRounds = 1;
+
+  const bet = await emitAck(guest, "blackjack:place_bet", {
+    roomCode,
+    amount: 100,
+  });
+  assert.equal(bet.game.playerBets.blackjack_guest, 100);
+  assert.equal("deck" in bet.game, false);
+
+  const started = await emitAck(host, "blackjack:start_round", { roomCode });
+  assert.equal("deck" in started.game, false);
+  assert.equal(started.game.dealer.hand.length, 2);
+  const game = blackjackService.getGame(roomCode);
+  game.status = "playing";
+  game.dealer = {
+    hand: [blackjackCard("10"), blackjackCard("7")],
+    score: 0,
+    isHidden: true,
+  };
+  game.playerHands = {
+    blackjack_host: [blackjackCard("10"), blackjackCard("7")],
+    blackjack_guest: [blackjackCard("10"), blackjackCard("7")],
+  };
+  game.playerStatuses = {
+    blackjack_host: "playing",
+    blackjack_guest: "playing",
+  };
+  game.roundHistory = [];
+  game.roundResults = {};
+  game.matchResults = null;
+  game.deck.push(blackjackCard("2"));
+
+  const hit = await emitAck(guest, "blackjack:hit", { roomCode });
+  assert.equal(hit.game.playerHands.blackjack_guest.length, 3);
+  assert.equal(hit.game.playerStatuses.blackjack_guest, "playing");
+  await emitAck(guest, "blackjack:stand", { roomCode });
+  await emitAck(host, "blackjack:stand", { roomCode });
+
+  const finished = blackjackService.getGame(roomCode);
+  assert.equal(finished.status, "match_over");
+  assert.equal(finished.dealer.isHidden, false);
+  assert.equal(Object.keys(finished.roundResults).length, 2);
+  assert.equal(finished.roundHistory.length, 1);
+  assert.ok(finished.matchResults);
+
+  const requested = await emitAck(host, "blackjack:rematch_request", {
+    roomCode,
+  });
+  assert.deepEqual(requested.game.rematchRequests, ["blackjack_host"]);
+  const rematch = await emitAck(guest, "blackjack:rematch_accept", {
+    roomCode,
+  });
+  assert.equal(rematch.game.status, "betting");
+  assert.equal(rematch.game.currentRound, 1);
+  assert.deepEqual(rematch.game.playerChips, {
+    blackjack_host: 1000,
+    blackjack_guest: 1000,
+  });
+});
+
 async function connectUser(userId, username) {
   const client = createClient(baseUrl, {
     transports: ["websocket"],
@@ -383,4 +470,15 @@ function onceWhere(client, event, predicate) {
     }
     client.on(event, handler);
   });
+}
+
+function blackjackCard(rank) {
+  return {
+    suit: "spades",
+    rank,
+    value: Number(rank) || 14,
+    displayName: `${rank} of Spades`,
+    suitSymbol: "♠",
+    colorType: "black",
+  };
 }

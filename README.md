@@ -24,6 +24,9 @@ states.
 - Real online War matches for 2 to 4 players and bots
 - Server-owned War decks, battle piles, recursive ties, eliminations, and rematches
 - Classic and Quick War modes with optional 25, 50, or 100-battle limits
+- Real online Blackjack tables for 2 to 4 players and bots
+- Server-owned Blackjack deck, dealer logic, hand scoring, bets, chips, and payouts
+- Configurable rounds, starting chips, minimum bets, and dealer soft-17 rules
 - Shared playing-card model, deck engine, rules, and card widgets
 - Persistent profile statistics, coins, XP, levels, and win streaks
 - Per-game statistics for High Card, War, and Blackjack
@@ -58,6 +61,7 @@ Playable:
 - Blackjack
 - Online High Card
 - Online War
+- Online Blackjack
 
 Coming soon:
 
@@ -240,7 +244,7 @@ Splash
         -> Room Lobby
            -> Online High Card
            -> Online War
-           -> Online Blackjack Placeholder
+           -> Online Blackjack
      -> Join Room
         -> Room Lobby
      -> Public Rooms
@@ -294,12 +298,12 @@ memory, so restarting the backend clears rooms and messages. The app supports:
 - Tracking shared scores and round history across all connected clients
 - Playing synchronized War battles with server-owned decks and battle piles
 - Resolving classic or quick ties, eliminations, card counts, and battle limits
+- Playing synchronized Blackjack rounds against a server-controlled dealer
+- Placing bets, hitting, standing, resolving payouts, and requesting rematches
 - Requesting a rematch after all human players accept
-- Using a multiplayer placeholder for online Blackjack
 
-Friends and invites still use local dummy data. Authentication and multiplayer
-Blackjack game logic are not implemented online. No Firebase or database is
-used.
+Friends and invites still use local dummy data. Authentication remains
+device-local. No Firebase or database is used.
 
 Online High Card rewards are saved to local progress:
 
@@ -313,6 +317,12 @@ Online War rewards are saved to local progress:
 - Loss: 35 coins and 25 XP
 - Draw: 60 coins and 40 XP
 
+Online Blackjack rewards are saved to local progress:
+
+- Win: 200 coins and 100 XP
+- Loss: 50 coins and 35 XP
+- Draw: 80 coins and 50 XP
+
 ### Test With Multiple Clients
 
 1. Start the backend.
@@ -322,7 +332,8 @@ Online War rewards are saved to local progress:
 5. Toggle ready and start from the host client.
 6. For High Card, draw synchronized cards and complete the configured rounds.
 7. For War, run synchronized battles and resolve ties until the match ends.
-8. Request a rematch from both clients.
+8. For Blackjack, place bets, hit or stand, and complete the configured rounds.
+9. Request a rematch from both clients.
 
 ## Quality Checks
 
@@ -354,10 +365,10 @@ synchronization. The following systems are intentionally not included:
 - Firebase integration
 - Database persistence for server rooms and chat
 - Playable sessions for the remaining card games
-- Online Blackjack gameplay
 
 Leaderboard opponents, friends, and invites use local sample data. Profile
 rewards, statistics, achievements, and match history are persistent local
 records. Active rooms, public room listings, readiness, bots, start events, and
-chat are synchronized through the Socket.IO backend. Online High Card and War
-use server-owned game state and remain in memory until the backend restarts.
+chat are synchronized through the Socket.IO backend. Online High Card, War,
+and Blackjack use server-owned game state and remain in memory until the
+backend restarts.

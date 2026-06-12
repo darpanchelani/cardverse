@@ -37,6 +37,7 @@ class ProgressController extends ChangeNotifier {
     'war': GameStatsModel.empty('war'),
     'war_online': GameStatsModel.empty('war_online'),
     'blackjack': GameStatsModel.empty('blackjack'),
+    'blackjack_online': GameStatsModel.empty('blackjack_online'),
   };
   List<MatchHistoryModel> matchHistory = [];
   List<AchievementModel> achievements = [];

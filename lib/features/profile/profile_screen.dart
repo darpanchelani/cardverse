@@ -257,6 +257,7 @@ class ProfileScreen extends StatelessWidget {
     multiplayer.chat.clearMessages();
     multiplayer.highCard.clear();
     multiplayer.war.clear();
+    multiplayer.blackjack.clear();
     multiplayer.room.clearRoom();
     multiplayer.connection.disconnect();
 

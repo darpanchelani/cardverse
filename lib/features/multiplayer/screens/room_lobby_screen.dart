@@ -69,6 +69,7 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
         final route = switch (config.gameType) {
           'high_card' => AppRoutes.multiplayerHighCard,
           'war' => AppRoutes.multiplayerWar,
+          'blackjack' => AppRoutes.multiplayerBlackjack,
           _ => AppRoutes.multiplayerPlaceholder,
         };
         context.push('$route/${widget.roomCode}');

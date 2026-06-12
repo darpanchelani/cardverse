@@ -5,6 +5,7 @@ const { ChatService } = require("./services/chat.service");
 const { RoomService } = require("./services/room.service");
 const { HighCardService } = require("./games/high-card/high_card.service");
 const { WarService } = require("./games/war/war.service");
+const { BlackjackService } = require("./games/blackjack/blackjack.service");
 const logger = require("./utils/logger");
 const { failure, success } = require("./utils/response");
 const { validateUser } = require("./utils/validators");
@@ -14,6 +15,7 @@ const chatService = new ChatService(roomService);
 roomService.setChatService(chatService);
 const highCardService = new HighCardService(roomService);
 const warService = new WarService(roomService);
+const blackjackService = new BlackjackService(roomService);
 const disconnectTimers = new Map();
 
 function createSocketServer(httpServer) {
@@ -76,6 +78,10 @@ function createSocketServer(httpServer) {
           roomCode,
           result.room.players.find((item) => item.id === player.id),
         );
+        const restoredBlackjackGame = blackjackService.restorePlayer(
+          roomCode,
+          result.room.players.find((item) => item.id === player.id),
+        );
         socket.join(roomCode);
         socket.data.roomCode = roomCode;
         const serialized = roomService.serializeRoom(result.room);
@@ -96,6 +102,9 @@ function createSocketServer(httpServer) {
         roomService.broadcastRoomUpdate(io, roomCode);
         if (restoredGame) emitHighCardState(io, restoredGame);
         if (restoredWarGame) emitWarState(io, restoredWarGame);
+        if (restoredBlackjackGame) {
+          emitBlackjackState(io, restoredBlackjackGame);
+        }
         emitPublicRooms(io);
         logger.info(`User joined room: ${player.username} -> ${roomCode}`);
         return success({ room: serialized }, "Room joined");
@@ -111,6 +120,10 @@ function createSocketServer(httpServer) {
         const result = roomService.leaveRoom(roomCode, player.id);
         const gameResult = highCardService.leaveGame(roomCode, player.id);
         const warResult = warService.leaveGame(roomCode, player.id);
+        const blackjackResult = blackjackService.leaveGame(
+          roomCode,
+          player.id,
+        );
         socket.leave(roomCode);
         socket.data.roomCode = null;
         socket.emit(SERVER_EVENTS.ROOM_LEFT, { roomCode });
@@ -125,9 +138,16 @@ function createSocketServer(httpServer) {
         if (gameResult.matchOver) emitHighCardMatchOver(io, gameResult.game);
         if (warResult.game) emitWarState(io, warResult.game);
         if (warResult.matchOver) emitWarMatchOver(io, warResult.game);
+        if (blackjackResult.game) {
+          emitBlackjackState(io, blackjackResult.game);
+        }
+        if (blackjackResult.matchOver) {
+          emitBlackjackMatchOver(io, blackjackResult.game);
+        }
         if (result.deleted) {
           highCardService.cleanupGame(roomCode);
           warService.cleanupGame(roomCode);
+          blackjackService.cleanupGame(roomCode);
         }
         emitPublicRooms(io);
         logger.info(`User left room: ${player.username} -> ${roomCode}`);
@@ -213,6 +233,9 @@ function createSocketServer(httpServer) {
         } else if (room.gameType === "war") {
           const game = warService.initGame(roomCode);
           emitWarState(io, game);
+        } else if (room.gameType === "blackjack") {
+          const game = blackjackService.initGame(roomCode);
+          emitBlackjackState(io, game);
         }
         roomService.broadcastRoomUpdate(io, roomCode);
         emitPublicRooms(io);
@@ -383,6 +406,146 @@ function createSocketServer(httpServer) {
       });
     });
 
+    socket.on(CLIENT_EVENTS.BLACKJACK_INIT, (payload = {}, acknowledge) => {
+      safelyBlackjack(socket, acknowledge, () => {
+        const player = requiredPlayer(socket);
+        const roomCode = currentRoomCode(socket, payload);
+        const joined = roomService.joinRoom(roomCode, { ...player });
+        socket.join(roomCode);
+        socket.data.roomCode = roomCode;
+        blackjackService.restorePlayer(
+          roomCode,
+          joined.room.players.find((item) => item.id === player.id),
+        );
+        blackjackService.getGame(roomCode) ??
+          blackjackService.initGame(roomCode);
+        const state = blackjackService.getClientState(roomCode, player.id);
+        socket.emit(SERVER_EVENTS.BLACKJACK_STATE, state);
+        return success({ game: state }, "Blackjack game loaded");
+      });
+    });
+
+    socket.on(
+      CLIENT_EVENTS.BLACKJACK_PLACE_BET,
+      (payload = {}, acknowledge) => {
+        safelyBlackjack(socket, acknowledge, () => {
+          const player = requiredPlayer(socket);
+          const roomCode = currentRoomCode(socket, payload);
+          const game = blackjackService.placeBet(
+            roomCode,
+            player.id,
+            payload.amount,
+          );
+          const state = blackjackService.sanitize(game);
+          io.to(roomCode).emit(SERVER_EVENTS.BLACKJACK_STATE, state);
+          return success({ game: state }, "Bet updated");
+        });
+      },
+    );
+
+    socket.on(
+      CLIENT_EVENTS.BLACKJACK_START_ROUND,
+      (payload = {}, acknowledge) => {
+        safelyBlackjack(socket, acknowledge, () => {
+          const player = requiredPlayer(socket);
+          const roomCode = currentRoomCode(socket, payload);
+          const result = blackjackService.startRound(roomCode, player.id);
+          const state = blackjackService.sanitize(result.game);
+          io.to(roomCode).emit(SERVER_EVENTS.BLACKJACK_ROUND_STARTED, state);
+          emitBlackjackState(io, result.game);
+          emitBlackjackFinishedEvents(io, result.finished);
+          return success({ game: state }, "Blackjack round started");
+        });
+      },
+    );
+
+    socket.on(CLIENT_EVENTS.BLACKJACK_HIT, (payload = {}, acknowledge) => {
+      safelyBlackjack(socket, acknowledge, () => {
+        const player = requiredPlayer(socket);
+        const roomCode = currentRoomCode(socket, payload);
+        const result = blackjackService.hit(roomCode, player.id);
+        io.to(roomCode).emit(
+          SERVER_EVENTS.BLACKJACK_PLAYER_ACTION,
+          result.action,
+        );
+        emitBlackjackState(io, result.game);
+        emitBlackjackFinishedEvents(io, result.finished);
+        return success(
+          { game: blackjackService.sanitize(result.game) },
+          "Card drawn",
+        );
+      });
+    });
+
+    socket.on(CLIENT_EVENTS.BLACKJACK_STAND, (payload = {}, acknowledge) => {
+      safelyBlackjack(socket, acknowledge, () => {
+        const player = requiredPlayer(socket);
+        const roomCode = currentRoomCode(socket, payload);
+        const result = blackjackService.stand(roomCode, player.id);
+        io.to(roomCode).emit(
+          SERVER_EVENTS.BLACKJACK_PLAYER_ACTION,
+          result.action,
+        );
+        emitBlackjackState(io, result.game);
+        emitBlackjackFinishedEvents(io, result.finished);
+        return success(
+          { game: blackjackService.sanitize(result.game) },
+          "Player stood",
+        );
+      });
+    });
+
+    socket.on(
+      CLIENT_EVENTS.BLACKJACK_NEXT_ROUND,
+      (payload = {}, acknowledge) => {
+        safelyBlackjack(socket, acknowledge, () => {
+          const player = requiredPlayer(socket);
+          const roomCode = currentRoomCode(socket, payload);
+          const game = blackjackService.nextRound(roomCode, player.id);
+          const state = blackjackService.sanitize(game);
+          io.to(roomCode).emit(SERVER_EVENTS.BLACKJACK_STATE, state);
+          return success({ game: state }, "Next round ready");
+        });
+      },
+    );
+
+    socket.on(
+      CLIENT_EVENTS.BLACKJACK_REMATCH_REQUEST,
+      (payload = {}, acknowledge) => {
+        handleBlackjackRematch(socket, acknowledge, payload);
+      },
+    );
+
+    socket.on(
+      CLIENT_EVENTS.BLACKJACK_REMATCH_ACCEPT,
+      (payload = {}, acknowledge) => {
+        handleBlackjackRematch(socket, acknowledge, payload);
+      },
+    );
+
+    socket.on(
+      CLIENT_EVENTS.BLACKJACK_LEAVE_GAME,
+      (payload = {}, acknowledge) => {
+        safelyBlackjack(socket, acknowledge, () => {
+          const player = requiredPlayer(socket);
+          const roomCode = currentRoomCode(socket, payload);
+          const result = blackjackService.leaveGame(roomCode, player.id);
+          if (result.game) emitBlackjackState(io, result.game);
+          if (result.matchOver) {
+            emitBlackjackMatchOver(io, result.game);
+          }
+          return success(
+            {
+              game: result.game
+                ? blackjackService.sanitize(result.game)
+                : null,
+            },
+            "Blackjack game left",
+          );
+        });
+      },
+    );
+
     socket.on(CLIENT_EVENTS.CHAT_SEND, (payload = {}, acknowledge) => {
       safely(socket, acknowledge, () => {
         const player = requiredPlayer(socket);
@@ -414,11 +577,13 @@ function createSocketServer(httpServer) {
       const rooms = roomService.markPlayerDisconnected(player.id);
       const games = highCardService.markDisconnected(player.id);
       const warGames = warService.markDisconnected(player.id);
+      const blackjackGames = blackjackService.markDisconnected(player.id);
       for (const room of rooms) {
         roomService.broadcastRoomUpdate(io, room.roomCode);
       }
       for (const game of games) emitHighCardState(io, game);
       for (const game of warGames) emitWarState(io, game);
+      for (const game of blackjackGames) emitBlackjackState(io, game);
       emitPublicRooms(io);
       const timer = setTimeout(() => {
         disconnectTimers.delete(player.id);
@@ -429,6 +594,10 @@ function createSocketServer(httpServer) {
             player.id,
           );
           const warResult = warService.leaveGame(update.roomCode, player.id);
+          const blackjackResult = blackjackService.leaveGame(
+            update.roomCode,
+            player.id,
+          );
           if (!update.deleted) {
             io.to(update.roomCode).emit(SERVER_EVENTS.PLAYER_LEFT, {
               playerId: player.id,
@@ -438,6 +607,7 @@ function createSocketServer(httpServer) {
           } else {
             highCardService.cleanupGame(update.roomCode);
             warService.cleanupGame(update.roomCode);
+            blackjackService.cleanupGame(update.roomCode);
           }
           if (gameResult.game) emitHighCardState(io, gameResult.game);
           if (gameResult.matchOver) {
@@ -445,6 +615,12 @@ function createSocketServer(httpServer) {
           }
           if (warResult.game) emitWarState(io, warResult.game);
           if (warResult.matchOver) emitWarMatchOver(io, warResult.game);
+          if (blackjackResult.game) {
+            emitBlackjackState(io, blackjackResult.game);
+          }
+          if (blackjackResult.matchOver) {
+            emitBlackjackMatchOver(io, blackjackResult.game);
+          }
         }
         roomService.cleanupEmptyRooms();
         emitPublicRooms(io);
@@ -492,6 +668,17 @@ function safelyWar(socket, acknowledge, action) {
   }
 }
 
+function safelyBlackjack(socket, acknowledge, action) {
+  try {
+    const result = action();
+    acknowledge?.(result);
+  } catch (error) {
+    const response = failure(error.message);
+    socket.emit(SERVER_EVENTS.BLACKJACK_ERROR, response);
+    acknowledge?.(response);
+  }
+}
+
 function requiredPlayer(socket) {
   if (!socket.data.player) throw new Error("Connect the user first");
   return socket.data.player;
@@ -511,6 +698,7 @@ function leaveCurrentRoom(io, socket, playerId, nextRoomCode = null) {
   const result = roomService.leaveRoom(current, playerId);
   const highCardResult = highCardService.leaveGame(current, playerId);
   const warResult = warService.leaveGame(current, playerId);
+  const blackjackResult = blackjackService.leaveGame(current, playerId);
   socket.leave(current);
   if (!result.deleted) {
     roomService.broadcastRoomUpdate(io, current);
@@ -522,9 +710,14 @@ function leaveCurrentRoom(io, socket, playerId, nextRoomCode = null) {
   }
   if (warResult.game) emitWarState(io, warResult.game);
   if (warResult.matchOver) emitWarMatchOver(io, warResult.game);
+  if (blackjackResult.game) emitBlackjackState(io, blackjackResult.game);
+  if (blackjackResult.matchOver) {
+    emitBlackjackMatchOver(io, blackjackResult.game);
+  }
   if (result.deleted) {
     highCardService.cleanupGame(current);
     warService.cleanupGame(current);
+    blackjackService.cleanupGame(current);
   }
 }
 
@@ -575,6 +768,48 @@ function emitWarMatchOver(io, game) {
     SERVER_EVENTS.WAR_MATCH_OVER,
     warService.sanitize(game),
   );
+}
+
+function emitBlackjackState(io, game) {
+  if (!game) return;
+  io.to(game.roomCode).emit(
+    SERVER_EVENTS.BLACKJACK_STATE,
+    blackjackService.sanitize(game),
+  );
+}
+
+function emitBlackjackMatchOver(io, game) {
+  if (!game) return;
+  io.to(game.roomCode).emit(
+    SERVER_EVENTS.BLACKJACK_MATCH_OVER,
+    blackjackService.sanitize(game),
+  );
+}
+
+function emitBlackjackFinishedEvents(io, finished) {
+  if (!finished?.game) return;
+  const state = blackjackService.sanitize(finished.game);
+  io.to(finished.game.roomCode).emit(
+    SERVER_EVENTS.BLACKJACK_DEALER_TURN,
+    {
+      dealer: state.dealer,
+      roundNumber: state.currentRound,
+    },
+  );
+  io.to(finished.game.roomCode).emit(
+    SERVER_EVENTS.BLACKJACK_ROUND_RESULT,
+    {
+      roundNumber: state.currentRound,
+      dealerScore: state.dealer.score,
+      playerResults: state.roundResults,
+    },
+  );
+  if (finished.matchOver) {
+    io.to(finished.game.roomCode).emit(
+      SERVER_EVENTS.BLACKJACK_MATCH_OVER,
+      state,
+    );
+  }
 }
 
 function handleRematch(socket, acknowledge, payload) {
@@ -631,9 +866,39 @@ function handleWarRematch(socket, acknowledge, payload) {
   });
 }
 
+function handleBlackjackRematch(socket, acknowledge, payload) {
+  safelyBlackjack(socket, acknowledge, () => {
+    const player = requiredPlayer(socket);
+    const roomCode = currentRoomCode(socket, payload);
+    const result = blackjackService.requestRematch(roomCode, player.id);
+    const state = blackjackService.sanitize(result.game);
+    if (result.started) {
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.BLACKJACK_REMATCH_STARTED, state);
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.BLACKJACK_STATE, state);
+    } else {
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.BLACKJACK_REMATCH_REQUESTED, {
+          playerId: result.player.id,
+          username: result.player.username,
+          rematchRequests: state.rematchRequests,
+        });
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.BLACKJACK_STATE, state);
+    }
+    return success({ game: state }, "Rematch request updated");
+  });
+}
+
 function gameScreen(gameType) {
   if (gameType === "high_card") return "high_card_multiplayer";
   if (gameType === "war") return "war_multiplayer";
+  if (gameType === "blackjack") return "blackjack_multiplayer";
   return "multiplayer_placeholder";
 }
 
@@ -647,4 +912,5 @@ module.exports = {
   chatService,
   highCardService,
   warService,
+  blackjackService,
 };

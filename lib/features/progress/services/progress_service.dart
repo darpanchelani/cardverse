@@ -52,6 +52,7 @@ class ProgressService {
       'war': GameStatsModel.empty('war'),
       'war_online': GameStatsModel.empty('war_online'),
       'blackjack': GameStatsModel.empty('blackjack'),
+      'blackjack_online': GameStatsModel.empty('blackjack_online'),
     };
     final raw = await _storage.getString(
       _storage.scopedKey(StorageKeys.gameStats),
@@ -256,6 +257,7 @@ class ProgressService {
       'blackjack' => 'Blackjack',
       'war' => 'War',
       'war_online' => 'Online War',
+      'blackjack_online' => 'Online Blackjack',
       _ => played.first.gameType,
     };
   }

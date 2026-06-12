@@ -23,6 +23,15 @@ const CLIENT_EVENTS = Object.freeze({
   WAR_REMATCH_REQUEST: "war:rematch_request",
   WAR_REMATCH_ACCEPT: "war:rematch_accept",
   WAR_LEAVE_GAME: "war:leave_game",
+  BLACKJACK_INIT: "blackjack:init",
+  BLACKJACK_PLACE_BET: "blackjack:place_bet",
+  BLACKJACK_START_ROUND: "blackjack:start_round",
+  BLACKJACK_HIT: "blackjack:hit",
+  BLACKJACK_STAND: "blackjack:stand",
+  BLACKJACK_NEXT_ROUND: "blackjack:next_round",
+  BLACKJACK_REMATCH_REQUEST: "blackjack:rematch_request",
+  BLACKJACK_REMATCH_ACCEPT: "blackjack:rematch_accept",
+  BLACKJACK_LEAVE_GAME: "blackjack:leave_game",
 });
 
 const SERVER_EVENTS = Object.freeze({
@@ -54,6 +63,15 @@ const SERVER_EVENTS = Object.freeze({
   WAR_ERROR: "war:error",
   WAR_REMATCH_REQUESTED: "war:rematch_requested",
   WAR_REMATCH_STARTED: "war:rematch_started",
+  BLACKJACK_STATE: "blackjack:state",
+  BLACKJACK_ROUND_STARTED: "blackjack:round_started",
+  BLACKJACK_PLAYER_ACTION: "blackjack:player_action",
+  BLACKJACK_DEALER_TURN: "blackjack:dealer_turn",
+  BLACKJACK_ROUND_RESULT: "blackjack:round_result",
+  BLACKJACK_MATCH_OVER: "blackjack:match_over",
+  BLACKJACK_ERROR: "blackjack:error",
+  BLACKJACK_REMATCH_REQUESTED: "blackjack:rematch_requested",
+  BLACKJACK_REMATCH_STARTED: "blackjack:rematch_started",
 });
 
 module.exports = { CLIENT_EVENTS, SERVER_EVENTS };

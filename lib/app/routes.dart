@@ -14,6 +14,7 @@ import 'package:cardverse/features/multiplayer/screens/public_rooms_screen.dart'
 import 'package:cardverse/features/multiplayer/screens/room_lobby_screen.dart';
 import 'package:cardverse/features/multiplayer/high_card/screens/high_card_multiplayer_screen.dart';
 import 'package:cardverse/features/multiplayer/war/screens/war_multiplayer_screen.dart';
+import 'package:cardverse/features/multiplayer/blackjack/screens/blackjack_multiplayer_screen.dart';
 import 'package:cardverse/features/onboarding/onboarding_screen.dart';
 import 'package:cardverse/features/profile/profile_screen.dart';
 import 'package:cardverse/features/progress/achievements_screen.dart';
@@ -41,6 +42,7 @@ abstract final class AppRoutes {
   static const multiplayerPlaceholder = '/multiplayer-placeholder';
   static const multiplayerHighCard = '/multiplayer/high-card';
   static const multiplayerWar = '/multiplayer/war';
+  static const multiplayerBlackjack = '/multiplayer/blackjack';
   static const leaderboard = '/leaderboard';
   static const profile = '/profile';
   static const matchHistory = '/match-history';
@@ -123,6 +125,12 @@ abstract final class AppRoutes {
       GoRoute(
         path: '$multiplayerWar/:roomCode',
         builder: (context, state) => WarMultiplayerScreen(
+          roomCode: state.pathParameters['roomCode'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '$multiplayerBlackjack/:roomCode',
+        builder: (context, state) => BlackjackMultiplayerScreen(
           roomCode: state.pathParameters['roomCode'] ?? '',
         ),
       ),

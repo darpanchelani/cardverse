@@ -109,6 +109,28 @@ void main() {
     expect(record.match.xpEarned, 75);
   });
 
+  test('online Blackjack uses its configured rewards', () async {
+    final record = await service.recordGameResult(
+      gameType: 'blackjack_online',
+      gameName: 'Online Blackjack',
+      result: 'win',
+      opponent: 'Multiplayer Dealer',
+      playerScore: 1250,
+      opponentScore: 900,
+      extraData: const {'roomCode': 'BJ12CD'},
+      matchId: 'online-blackjack-1',
+      rewardCoins: 200,
+      rewardXp: 100,
+    );
+
+    expect(record.profile.coins, 700);
+    expect(record.profile.xp, 100);
+    expect(record.profile.favoriteGame, 'Online Blackjack');
+    expect(record.stats['blackjack_online']?.wins, 1);
+    expect(record.match.coinsEarned, 200);
+    expect(record.match.xpEarned, 100);
+  });
+
   test('corrupt JSON falls back to default progress', () async {
     await storage.saveString(StorageKeys.playerProfile, '{not-json');
     await storage.saveString(StorageKeys.gameStats, 'not-json');
@@ -128,6 +150,7 @@ void main() {
         'war',
         'war_online',
         'blackjack',
+        'blackjack_online',
       ]),
     );
     expect(history, isEmpty);

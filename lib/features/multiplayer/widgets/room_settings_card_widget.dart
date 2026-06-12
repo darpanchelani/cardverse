@@ -12,6 +12,8 @@ class RoomSettingsCardWidget extends StatelessWidget {
     final values = [
       ('Turn timer', timer == 0 || timer == null ? 'No timer' : '${timer}s'),
       if (settings['maxRounds'] != null) ('Rounds', '${settings['maxRounds']}'),
+      if (settings.containsKey('maxRounds') && settings['maxRounds'] == null)
+        ('Rounds', 'Until one remains'),
       if (settings['maxBattles'] != null)
         (
           'Battle limit',
@@ -21,6 +23,17 @@ class RoomSettingsCardWidget extends StatelessWidget {
         ),
       if (settings['warMode'] != null)
         ('War mode', settings['warMode'] == 'quick' ? 'Quick War' : 'Classic'),
+      if (settings['startingChips'] != null)
+        ('Starting chips', '${settings['startingChips']}'),
+      if (settings['minimumBet'] != null)
+        ('Minimum bet', '${settings['minimumBet']}'),
+      if (settings['dealerRule'] != null)
+        (
+          'Dealer rule',
+          settings['dealerRule'] == 'hit_soft_17'
+              ? 'Hit soft 17'
+              : 'Stand on 17',
+        ),
       ('Difficulty', '${settings['difficulty'] ?? 'Normal'}'),
       (
         'Spectators',

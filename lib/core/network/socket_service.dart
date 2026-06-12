@@ -30,6 +30,15 @@ abstract final class SocketEvents {
   static const warRematchRequest = 'war:rematch_request';
   static const warRematchAccept = 'war:rematch_accept';
   static const warLeaveGame = 'war:leave_game';
+  static const blackjackInit = 'blackjack:init';
+  static const blackjackPlaceBet = 'blackjack:place_bet';
+  static const blackjackStartRound = 'blackjack:start_round';
+  static const blackjackHit = 'blackjack:hit';
+  static const blackjackStand = 'blackjack:stand';
+  static const blackjackNextRound = 'blackjack:next_round';
+  static const blackjackRematchRequest = 'blackjack:rematch_request';
+  static const blackjackRematchAccept = 'blackjack:rematch_accept';
+  static const blackjackLeaveGame = 'blackjack:leave_game';
 
   static const connectionSuccess = 'connection:success';
   static const roomCreated = 'room:created';
@@ -56,6 +65,15 @@ abstract final class SocketEvents {
   static const warError = 'war:error';
   static const warRematchRequested = 'war:rematch_requested';
   static const warRematchStarted = 'war:rematch_started';
+  static const blackjackState = 'blackjack:state';
+  static const blackjackRoundStarted = 'blackjack:round_started';
+  static const blackjackPlayerAction = 'blackjack:player_action';
+  static const blackjackDealerTurn = 'blackjack:dealer_turn';
+  static const blackjackRoundResult = 'blackjack:round_result';
+  static const blackjackMatchOver = 'blackjack:match_over';
+  static const blackjackError = 'blackjack:error';
+  static const blackjackRematchRequested = 'blackjack:rematch_requested';
+  static const blackjackRematchStarted = 'blackjack:rematch_started';
 }
 
 class SocketService extends ChangeNotifier {

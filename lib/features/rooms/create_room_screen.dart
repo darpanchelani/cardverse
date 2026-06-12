@@ -24,6 +24,10 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   int _maxRounds = 5;
   int _maxBattles = 50;
   String _warMode = 'classic';
+  int _blackjackMaxRounds = 5;
+  int _startingChips = 1000;
+  int _minimumBet = 10;
+  String _dealerRule = 'stand_on_17';
 
   String get _gameName => switch (_gameType) {
     'war' => 'War',
@@ -204,6 +208,88 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       ),
                       const SizedBox(height: 14),
                     ],
+                    if (_gameType == 'blackjack') ...[
+                      DropdownButtonFormField<int>(
+                        initialValue: _blackjackMaxRounds,
+                        decoration: const InputDecoration(
+                          labelText: 'Match length',
+                          prefixIcon: Icon(Icons.repeat_rounded),
+                        ),
+                        dropdownColor: AppColors.cardGreen,
+                        items: const [
+                          DropdownMenuItem(value: 3, child: Text('3 rounds')),
+                          DropdownMenuItem(value: 5, child: Text('5 rounds')),
+                          DropdownMenuItem(value: 10, child: Text('10 rounds')),
+                          DropdownMenuItem(
+                            value: 0,
+                            child: Text('Until one player remains'),
+                          ),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _blackjackMaxRounds = value ?? 5),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<int>(
+                        initialValue: _startingChips,
+                        decoration: const InputDecoration(
+                          labelText: 'Starting chips',
+                          prefixIcon: Icon(Icons.paid_outlined),
+                        ),
+                        dropdownColor: AppColors.cardGreen,
+                        items: const [500, 1000, 2000]
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text('$value chips'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _startingChips = value ?? 1000),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<int>(
+                        initialValue: _minimumBet,
+                        decoration: const InputDecoration(
+                          labelText: 'Minimum bet',
+                          prefixIcon: Icon(Icons.casino_outlined),
+                        ),
+                        dropdownColor: AppColors.cardGreen,
+                        items: const [10, 25, 50]
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text('$value chips'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _minimumBet = value ?? 10),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<String>(
+                        initialValue: _dealerRule,
+                        decoration: const InputDecoration(
+                          labelText: 'Dealer rule',
+                          prefixIcon: Icon(Icons.account_balance_outlined),
+                        ),
+                        dropdownColor: AppColors.cardGreen,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'stand_on_17',
+                            child: Text('Stand on 17'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'hit_soft_17',
+                            child: Text('Hit soft 17'),
+                          ),
+                        ],
+                        onChanged: (value) => setState(
+                          () => _dealerRule = value ?? 'stand_on_17',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     DropdownButtonFormField<String>(
                       initialValue: _difficulty,
                       decoration: const InputDecoration(
@@ -273,6 +359,11 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         if (_gameType == 'high_card') 'maxRounds': _maxRounds,
         if (_gameType == 'war') 'maxBattles': _maxBattles,
         if (_gameType == 'war') 'warMode': _warMode,
+        if (_gameType == 'blackjack')
+          'maxRounds': _blackjackMaxRounds == 0 ? null : _blackjackMaxRounds,
+        if (_gameType == 'blackjack') 'startingChips': _startingChips,
+        if (_gameType == 'blackjack') 'minimumBet': _minimumBet,
+        if (_gameType == 'blackjack') 'dealerRule': _dealerRule,
       },
     );
     if (!mounted) return;

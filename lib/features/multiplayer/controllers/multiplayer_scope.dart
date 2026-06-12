@@ -16,6 +16,8 @@ import 'package:cardverse/features/multiplayer/high_card/controllers/high_card_m
 import 'package:cardverse/features/multiplayer/high_card/services/socket_high_card_service.dart';
 import 'package:cardverse/features/multiplayer/war/controllers/war_multiplayer_controller.dart';
 import 'package:cardverse/features/multiplayer/war/services/socket_war_service.dart';
+import 'package:cardverse/features/multiplayer/blackjack/controllers/blackjack_multiplayer_controller.dart';
+import 'package:cardverse/features/multiplayer/blackjack/services/socket_blackjack_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/widgets.dart';
 
@@ -28,6 +30,7 @@ class MultiplayerControllers {
     required this.connection,
     required this.highCard,
     required this.war,
+    required this.blackjack,
   });
 
   factory MultiplayerControllers.create({
@@ -62,6 +65,11 @@ class MultiplayerControllers {
         currentUserId: userId,
         progressController: progressController,
       ),
+      blackjack: BlackjackMultiplayerController(
+        service: SocketBlackjackService(socket),
+        currentUserId: userId,
+        progressController: progressController,
+      ),
     );
     unawaited(controllers.friends.loadFriends());
     unawaited(controllers.invites.loadInvites());
@@ -78,6 +86,7 @@ class MultiplayerControllers {
   final SocketConnectionController connection;
   final HighCardMultiplayerController highCard;
   final WarMultiplayerController war;
+  final BlackjackMultiplayerController blackjack;
 
   factory MultiplayerControllers.dummy() {
     final socket = SocketService();
@@ -100,6 +109,10 @@ class MultiplayerControllers {
       ),
       war: WarMultiplayerController(
         service: SocketWarService(socket),
+        currentUserId: 'current_user',
+      ),
+      blackjack: BlackjackMultiplayerController(
+        service: SocketBlackjackService(socket),
         currentUserId: 'current_user',
       ),
     );

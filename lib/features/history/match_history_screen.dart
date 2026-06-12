@@ -80,6 +80,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         selected: _filter,
                         onSelected: _select,
                       ),
+                      _FilterChip(
+                        label: 'Online Blackjack',
+                        value: 'blackjack_online',
+                        selected: _filter,
+                        onSelected: _select,
+                      ),
                     ],
                   ),
                 ),
