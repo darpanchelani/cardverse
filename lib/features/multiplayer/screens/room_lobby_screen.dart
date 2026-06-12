@@ -66,9 +66,11 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final config = controller.gameStartingConfig!;
-        final route = config.gameType == 'high_card'
-            ? AppRoutes.multiplayerHighCard
-            : AppRoutes.multiplayerPlaceholder;
+        final route = switch (config.gameType) {
+          'high_card' => AppRoutes.multiplayerHighCard,
+          'war' => AppRoutes.multiplayerWar,
+          _ => AppRoutes.multiplayerPlaceholder,
+        };
         context.push('$route/${widget.roomCode}');
       }
     });

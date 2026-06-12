@@ -67,6 +67,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     _changeFilter,
                   ),
                   _Filter('War', 'war', _filter, _changeFilter),
+                  _Filter('Online War', 'war_online', _filter, _changeFilter),
                   _Filter('Blackjack', 'blackjack', _filter, _changeFilter),
                 ],
               ),

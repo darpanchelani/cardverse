@@ -22,8 +22,12 @@ class ProgressService {
 
   final LocalStorageService _storage;
 
+  Future<void> useAccount(String accountId) => _storage.useAccount(accountId);
+
   Future<PlayerProfileModel> getProfile() async {
-    final raw = await _storage.getString(StorageKeys.playerProfile);
+    final raw = await _storage.getString(
+      _storage.scopedKey(StorageKeys.playerProfile),
+    );
     if (raw == null) return PlayerProfileModel.defaults();
     try {
       return PlayerProfileModel.fromJson(
@@ -36,7 +40,7 @@ class ProgressService {
 
   Future<void> saveProfile(PlayerProfileModel profile) async {
     await _storage.saveString(
-      StorageKeys.playerProfile,
+      _storage.scopedKey(StorageKeys.playerProfile),
       jsonEncode(profile.toJson()),
     );
   }
@@ -46,9 +50,12 @@ class ProgressService {
       'high_card': GameStatsModel.empty('high_card'),
       'high_card_online': GameStatsModel.empty('high_card_online'),
       'war': GameStatsModel.empty('war'),
+      'war_online': GameStatsModel.empty('war_online'),
       'blackjack': GameStatsModel.empty('blackjack'),
     };
-    final raw = await _storage.getString(StorageKeys.gameStats);
+    final raw = await _storage.getString(
+      _storage.scopedKey(StorageKeys.gameStats),
+    );
     if (raw == null) return defaults;
     try {
       final decoded = Map<String, dynamic>.from(jsonDecode(raw) as Map);
@@ -70,13 +77,15 @@ class ProgressService {
 
   Future<void> saveGameStats(Map<String, GameStatsModel> stats) async {
     await _storage.saveString(
-      StorageKeys.gameStats,
+      _storage.scopedKey(StorageKeys.gameStats),
       jsonEncode(stats.map((key, value) => MapEntry(key, value.toJson()))),
     );
   }
 
   Future<List<MatchHistoryModel>> getMatchHistory() async {
-    final raw = await _storage.getString(StorageKeys.matchHistory);
+    final raw = await _storage.getString(
+      _storage.scopedKey(StorageKeys.matchHistory),
+    );
     if (raw == null) return [];
     try {
       final decoded = List<dynamic>.from(jsonDecode(raw) as List);
@@ -99,21 +108,24 @@ class ProgressService {
     if (history.any((item) => item.id == match.id)) return;
     history.insert(0, match);
     await _storage.saveString(
-      StorageKeys.matchHistory,
+      _storage.scopedKey(StorageKeys.matchHistory),
       jsonEncode(history.take(250).map((item) => item.toJson()).toList()),
     );
   }
 
   Future<void> clearMatchHistory() async {
-    await _storage.remove(StorageKeys.matchHistory);
+    await _storage.remove(_storage.scopedKey(StorageKeys.matchHistory));
   }
 
   Future<int?> getBlackjackChips() {
-    return _storage.getInt(StorageKeys.blackjackChips);
+    return _storage.getInt(_storage.scopedKey(StorageKeys.blackjackChips));
   }
 
   Future<void> saveBlackjackChips(int chips) {
-    return _storage.saveInt(StorageKeys.blackjackChips, chips);
+    return _storage.saveInt(
+      _storage.scopedKey(StorageKeys.blackjackChips),
+      chips,
+    );
   }
 
   Future<ProgressRecord> recordGameResult({
@@ -206,12 +218,12 @@ class ProgressService {
 
   Future<void> clearProgress() async {
     await Future.wait([
-      _storage.remove(StorageKeys.playerProfile),
-      _storage.remove(StorageKeys.gameStats),
-      _storage.remove(StorageKeys.matchHistory),
-      _storage.remove(StorageKeys.achievements),
-      _storage.remove(StorageKeys.leaderboard),
-      _storage.remove(StorageKeys.blackjackChips),
+      _storage.remove(_storage.scopedKey(StorageKeys.playerProfile)),
+      _storage.remove(_storage.scopedKey(StorageKeys.gameStats)),
+      _storage.remove(_storage.scopedKey(StorageKeys.matchHistory)),
+      _storage.remove(_storage.scopedKey(StorageKeys.achievements)),
+      _storage.remove(_storage.scopedKey(StorageKeys.leaderboard)),
+      _storage.remove(_storage.scopedKey(StorageKeys.blackjackChips)),
     ]);
   }
 
@@ -243,6 +255,7 @@ class ProgressService {
       'high_card_online' => 'Online High Card',
       'blackjack' => 'Blackjack',
       'war' => 'War',
+      'war_online' => 'Online War',
       _ => played.first.gameType,
     };
   }

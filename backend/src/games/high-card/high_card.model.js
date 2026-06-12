@@ -1,9 +1,4 @@
-function createHighCardGameState({
-  roomCode,
-  players,
-  deck,
-  maxRounds,
-}) {
+function createHighCardGameState({ roomCode, players, deck, maxRounds }) {
   const now = new Date().toISOString();
   return {
     roomCode,

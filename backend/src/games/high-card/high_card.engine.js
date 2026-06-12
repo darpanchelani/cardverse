@@ -83,9 +83,7 @@ function sanitizeGameStateForClient(gameState) {
           cards: { ...gameState.roundResult.cards },
         }
       : null,
-    matchWinner: gameState.matchWinner
-      ? { ...gameState.matchWinner }
-      : null,
+    matchWinner: gameState.matchWinner ? { ...gameState.matchWinner } : null,
     rematchRequests: [...gameState.rematchRequests],
   };
 }

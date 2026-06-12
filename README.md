@@ -10,7 +10,9 @@ states.
 
 - Branded splash screen and guided onboarding experience
 - Onboarding completion saved locally
-- Login, account registration, and guest access
+- Multiple validated local accounts, login, and guest access
+- Locally hashed passwords and persistent player identity
+- Profile logout with confirmation while preserving account progress
 - Responsive home dashboard with player progress summary
 - Computer game catalog with available and coming-soon titles
 - Playable High Card game against a computer opponent
@@ -19,6 +21,9 @@ states.
 - Real online High Card matches for 2 to 4 players and bots
 - Server-owned deck, card draws, round scoring, match results, and rematches
 - Configurable 3, 5, or 10-round online High Card rooms
+- Real online War matches for 2 to 4 players and bots
+- Server-owned War decks, battle piles, recursive ties, eliminations, and rematches
+- Classic and Quick War modes with optional 25, 50, or 100-battle limits
 - Shared playing-card model, deck engine, rules, and card widgets
 - Persistent profile statistics, coins, XP, levels, and win streaks
 - Per-game statistics for High Card, War, and Blackjack
@@ -52,6 +57,7 @@ Playable:
 - War
 - Blackjack
 - Online High Card
+- Online War
 
 Coming soon:
 
@@ -206,9 +212,11 @@ lib/
     ├── leaderboard/
     ├── multiplayer/
     │   ├── controllers/
+    │   ├── high_card/
     │   ├── models/
     │   ├── screens/
     │   ├── services/
+    │   ├── war/
     │   └── widgets/
     ├── onboarding/
     ├── profile/
@@ -230,7 +238,9 @@ Splash
      -> Game Selection
      -> Create Room
         -> Room Lobby
-           -> Multiplayer Placeholder
+           -> Online High Card
+           -> Online War
+           -> Online Blackjack Placeholder
      -> Join Room
         -> Room Lobby
      -> Public Rooms
@@ -244,14 +254,21 @@ Splash
      -> Match History
 ```
 
-Login, registration, and guest actions currently navigate directly to the
-home screen without validating credentials.
+Registration saves local accounts on the device. Login accepts any saved email
+or username and verifies the password before opening the home screen. Guest
+access remains available as a separate action.
 
 ## Local Progress
 
 CardVerse stores profile data, game statistics, achievements, match history,
 Blackjack chips, leaderboard snapshots, and onboarding status on the device
 using `shared_preferences`. Structured records are encoded as JSON.
+
+Each saved account and the Guest profile has isolated coins, XP, game stats,
+achievements, match history, leaderboard data, and Blackjack chips.
+
+Local account credentials are device-only. Passwords are stored as SHA-256
+hashes, but this is not a replacement for backend authentication.
 
 Game rewards:
 
@@ -275,18 +292,26 @@ memory, so restarting the backend clears rooms and messages. The app supports:
 - Sending real-time room chat messages
 - Playing synchronized High Card matches with backend-controlled card draws
 - Tracking shared scores and round history across all connected clients
+- Playing synchronized War battles with server-owned decks and battle piles
+- Resolving classic or quick ties, eliminations, card counts, and battle limits
 - Requesting a rematch after all human players accept
-- Using multiplayer placeholders for online War and Blackjack
+- Using a multiplayer placeholder for online Blackjack
 
 Friends and invites still use local dummy data. Authentication and multiplayer
-War and Blackjack game logic are not implemented online. No Firebase or
-database is used.
+Blackjack game logic are not implemented online. No Firebase or database is
+used.
 
 Online High Card rewards are saved to local progress:
 
 - Win: 100 coins and 50 XP
 - Loss: 25 coins and 20 XP
 - Draw: 40 coins and 30 XP
+
+Online War rewards are saved to local progress:
+
+- Win: 150 coins and 75 XP
+- Loss: 35 coins and 25 XP
+- Draw: 60 coins and 40 XP
 
 ### Test With Multiple Clients
 
@@ -295,8 +320,9 @@ Online High Card rewards are saved to local progress:
 3. Create a room on the first client.
 4. Join with the six-character code on the second client.
 5. Toggle ready and start from the host client.
-6. Draw synchronized cards, complete the configured rounds, and request a
-   rematch.
+6. For High Card, draw synchronized cards and complete the configured rounds.
+7. For War, run synchronized battles and resolve ties until the match ends.
+8. Request a rematch from both clients.
 
 ## Quality Checks
 
@@ -323,15 +349,15 @@ flutter test
 The app supports offline play, local progress, and real-time room/lobby
 synchronization. The following systems are intentionally not included:
 
-- Real authentication and user accounts
+- Server-backed authentication and synchronized user accounts
 - Backend APIs and cloud synchronization
 - Firebase integration
 - Database persistence for server rooms and chat
 - Playable sessions for the remaining card games
-- Online War and Blackjack gameplay
+- Online Blackjack gameplay
 
 Leaderboard opponents, friends, and invites use local sample data. Profile
 rewards, statistics, achievements, and match history are persistent local
 records. Active rooms, public room listings, readiness, bots, start events, and
-chat are synchronized through the Socket.IO backend and remain in server memory
-until it restarts.
+chat are synchronized through the Socket.IO backend. Online High Card and War
+use server-owned game state and remain in memory until the backend restarts.

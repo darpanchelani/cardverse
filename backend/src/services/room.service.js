@@ -2,10 +2,7 @@ const { GAME_NAMES, ROOM_STATUSES } = require("../constants/game_types");
 const { createRoomModel } = require("../models/room.model");
 const { createBot } = require("./bot.service");
 const { generateRoomCode } = require("./room_code.service");
-const {
-  validateCreateRoom,
-  validateRoomCode,
-} = require("../utils/validators");
+const { validateCreateRoom, validateRoomCode } = require("../utils/validators");
 
 class RoomService {
   constructor() {
@@ -87,12 +84,20 @@ class RoomService {
   }
 
   getRoom(roomCode) {
-    return this.rooms.get(String(roomCode || "").trim().toUpperCase()) || null;
+    return (
+      this.rooms.get(
+        String(roomCode || "")
+          .trim()
+          .toUpperCase(),
+      ) || null
+    );
   }
 
   getPublicRooms() {
     return [...this.rooms.values()]
-      .filter((room) => !room.isPrivate && room.status !== ROOM_STATUSES.FINISHED)
+      .filter(
+        (room) => !room.isPrivate && room.status !== ROOM_STATUSES.FINISHED,
+      )
       .map((room) => this.serializeRoom(room));
   }
 
@@ -166,7 +171,10 @@ class RoomService {
     const updates = [];
     for (const room of [...this.rooms.values()]) {
       if (room.players.some((player) => player.id === playerId)) {
-        updates.push({ roomCode: room.roomCode, ...this.leaveRoom(room.roomCode, playerId) });
+        updates.push({
+          roomCode: room.roomCode,
+          ...this.leaveRoom(room.roomCode, playerId),
+        });
       }
     }
     return updates;
@@ -186,7 +194,8 @@ class RoomService {
 
   cleanupEmptyRooms() {
     for (const [code, room] of this.rooms.entries()) {
-      if (!room.players.some((player) => !player.isBot)) this.rooms.delete(code);
+      if (!room.players.some((player) => !player.isBot))
+        this.rooms.delete(code);
     }
   }
 
@@ -212,7 +221,8 @@ class RoomService {
 
   _assertHost(room, playerId) {
     const player = room.players.find((item) => item.id === playerId);
-    if (!player?.isHost) throw new Error("Only the host can perform this action");
+    if (!player?.isHost)
+      throw new Error("Only the host can perform this action");
   }
 
   _updateStatus(room) {

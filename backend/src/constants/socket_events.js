@@ -17,6 +17,12 @@ const CLIENT_EVENTS = Object.freeze({
   HIGH_CARD_REMATCH_REQUEST: "high_card:rematch_request",
   HIGH_CARD_REMATCH_ACCEPT: "high_card:rematch_accept",
   HIGH_CARD_LEAVE_GAME: "high_card:leave_game",
+  WAR_INIT: "war:init",
+  WAR_BATTLE: "war:battle",
+  WAR_NEXT_BATTLE: "war:next_battle",
+  WAR_REMATCH_REQUEST: "war:rematch_request",
+  WAR_REMATCH_ACCEPT: "war:rematch_accept",
+  WAR_LEAVE_GAME: "war:leave_game",
 });
 
 const SERVER_EVENTS = Object.freeze({
@@ -41,6 +47,13 @@ const SERVER_EVENTS = Object.freeze({
   HIGH_CARD_ERROR: "high_card:error",
   HIGH_CARD_REMATCH_REQUESTED: "high_card:rematch_requested",
   HIGH_CARD_REMATCH_STARTED: "high_card:rematch_started",
+  WAR_STATE: "war:state",
+  WAR_BATTLE_RESULT: "war:battle_result",
+  WAR_STARTED: "war:war_started",
+  WAR_MATCH_OVER: "war:match_over",
+  WAR_ERROR: "war:error",
+  WAR_REMATCH_REQUESTED: "war:rematch_requested",
+  WAR_REMATCH_STARTED: "war:rematch_started",
 });
 
 module.exports = { CLIENT_EVENTS, SERVER_EVENTS };

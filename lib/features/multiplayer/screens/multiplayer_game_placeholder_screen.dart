@@ -59,7 +59,7 @@ class MultiplayerGamePlaceholderScreen extends StatelessWidget {
                 border: Border.all(color: AppColors.gold),
               ),
               child: const Text(
-                'Online War and Blackjack gameplay will be added in a future update.',
+                'Online Blackjack gameplay will be added in a future update.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontFamily: 'Arial', height: 1.5),
               ),

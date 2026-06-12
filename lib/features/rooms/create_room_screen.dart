@@ -22,6 +22,8 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   int _turnTimeSeconds = 30;
   String _difficulty = 'Normal';
   int _maxRounds = 5;
+  int _maxBattles = 50;
+  String _warMode = 'classic';
 
   String get _gameName => switch (_gameType) {
     'war' => 'War',
@@ -154,6 +156,54 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                       ),
                       const SizedBox(height: 14),
                     ],
+                    if (_gameType == 'war') ...[
+                      DropdownButtonFormField<int>(
+                        initialValue: _maxBattles,
+                        decoration: const InputDecoration(
+                          labelText: 'Battle limit',
+                          prefixIcon: Icon(Icons.bolt_rounded),
+                        ),
+                        dropdownColor: AppColors.cardGreen,
+                        items:
+                            const [
+                                  (25, '25 battles'),
+                                  (50, '50 battles'),
+                                  (100, '100 battles'),
+                                  (0, 'No limit'),
+                                ]
+                                .map(
+                                  (option) => DropdownMenuItem(
+                                    value: option.$1,
+                                    child: Text(option.$2),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) =>
+                            setState(() => _maxBattles = value ?? 50),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<String>(
+                        initialValue: _warMode,
+                        decoration: const InputDecoration(
+                          labelText: 'War mode',
+                          prefixIcon: Icon(Icons.style_rounded),
+                        ),
+                        dropdownColor: AppColors.cardGreen,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'classic',
+                            child: Text('Classic'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'quick',
+                            child: Text('Quick War'),
+                          ),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _warMode = value ?? 'classic'),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     DropdownButtonFormField<String>(
                       initialValue: _difficulty,
                       decoration: const InputDecoration(
@@ -220,7 +270,9 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         'difficulty': _difficulty,
         'allowSpectators': _roomType == 'public',
         'autoStart': false,
-        'maxRounds': _gameType == 'high_card' ? _maxRounds : 5,
+        if (_gameType == 'high_card') 'maxRounds': _maxRounds,
+        if (_gameType == 'war') 'maxBattles': _maxBattles,
+        if (_gameType == 'war') 'warMode': _warMode,
       },
     );
     if (!mounted) return;

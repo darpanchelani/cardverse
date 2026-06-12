@@ -14,6 +14,8 @@ import 'package:cardverse/features/multiplayer/services/socket_chat_service.dart
 import 'package:cardverse/features/multiplayer/services/socket_room_service.dart';
 import 'package:cardverse/features/multiplayer/high_card/controllers/high_card_multiplayer_controller.dart';
 import 'package:cardverse/features/multiplayer/high_card/services/socket_high_card_service.dart';
+import 'package:cardverse/features/multiplayer/war/controllers/war_multiplayer_controller.dart';
+import 'package:cardverse/features/multiplayer/war/services/socket_war_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/widgets.dart';
 
@@ -25,6 +27,7 @@ class MultiplayerControllers {
     required this.invites,
     required this.connection,
     required this.highCard,
+    required this.war,
   });
 
   factory MultiplayerControllers.create({
@@ -54,6 +57,11 @@ class MultiplayerControllers {
         currentUserId: userId,
         progressController: progressController,
       ),
+      war: WarMultiplayerController(
+        service: SocketWarService(socket),
+        currentUserId: userId,
+        progressController: progressController,
+      ),
     );
     unawaited(controllers.friends.loadFriends());
     unawaited(controllers.invites.loadInvites());
@@ -69,6 +77,7 @@ class MultiplayerControllers {
   final InviteController invites;
   final SocketConnectionController connection;
   final HighCardMultiplayerController highCard;
+  final WarMultiplayerController war;
 
   factory MultiplayerControllers.dummy() {
     final socket = SocketService();
@@ -87,6 +96,10 @@ class MultiplayerControllers {
       ),
       highCard: HighCardMultiplayerController(
         service: SocketHighCardService(socket),
+        currentUserId: 'current_user',
+      ),
+      war: WarMultiplayerController(
+        service: SocketWarService(socket),
         currentUserId: 'current_user',
       ),
     );

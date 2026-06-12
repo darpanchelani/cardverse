@@ -24,6 +24,12 @@ abstract final class SocketEvents {
   static const highCardRematchRequest = 'high_card:rematch_request';
   static const highCardRematchAccept = 'high_card:rematch_accept';
   static const highCardLeaveGame = 'high_card:leave_game';
+  static const warInit = 'war:init';
+  static const warBattle = 'war:battle';
+  static const warNextBattle = 'war:next_battle';
+  static const warRematchRequest = 'war:rematch_request';
+  static const warRematchAccept = 'war:rematch_accept';
+  static const warLeaveGame = 'war:leave_game';
 
   static const connectionSuccess = 'connection:success';
   static const roomCreated = 'room:created';
@@ -43,6 +49,13 @@ abstract final class SocketEvents {
   static const highCardError = 'high_card:error';
   static const highCardRematchRequested = 'high_card:rematch_requested';
   static const highCardRematchStarted = 'high_card:rematch_started';
+  static const warState = 'war:state';
+  static const warBattleResult = 'war:battle_result';
+  static const warStarted = 'war:war_started';
+  static const warMatchOver = 'war:match_over';
+  static const warError = 'war:error';
+  static const warRematchRequested = 'war:rematch_requested';
+  static const warRematchStarted = 'war:rematch_started';
 }
 
 class SocketService extends ChangeNotifier {

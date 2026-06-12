@@ -1,12 +1,10 @@
 const { Server } = require("socket.io");
-const {
-  CLIENT_EVENTS,
-  SERVER_EVENTS,
-} = require("./constants/socket_events");
+const { CLIENT_EVENTS, SERVER_EVENTS } = require("./constants/socket_events");
 const { createPlayer } = require("./models/player.model");
 const { ChatService } = require("./services/chat.service");
 const { RoomService } = require("./services/room.service");
 const { HighCardService } = require("./games/high-card/high_card.service");
+const { WarService } = require("./games/war/war.service");
 const logger = require("./utils/logger");
 const { failure, success } = require("./utils/response");
 const { validateUser } = require("./utils/validators");
@@ -15,6 +13,7 @@ const roomService = new RoomService();
 const chatService = new ChatService(roomService);
 roomService.setChatService(chatService);
 const highCardService = new HighCardService(roomService);
+const warService = new WarService(roomService);
 const disconnectTimers = new Map();
 
 function createSocketServer(httpServer) {
@@ -64,10 +63,16 @@ function createSocketServer(httpServer) {
     socket.on(CLIENT_EVENTS.ROOM_JOIN, (payload = {}, acknowledge) => {
       safely(socket, acknowledge, () => {
         const player = requiredPlayer(socket);
-        const roomCode = String(payload.roomCode || "").trim().toUpperCase();
+        const roomCode = String(payload.roomCode || "")
+          .trim()
+          .toUpperCase();
         leaveCurrentRoom(io, socket, player.id, roomCode);
         const result = roomService.joinRoom(roomCode, { ...player });
         const restoredGame = highCardService.restorePlayer(
+          roomCode,
+          result.room.players.find((item) => item.id === player.id),
+        );
+        const restoredWarGame = warService.restorePlayer(
           roomCode,
           result.room.players.find((item) => item.id === player.id),
         );
@@ -90,6 +95,7 @@ function createSocketServer(httpServer) {
         }
         roomService.broadcastRoomUpdate(io, roomCode);
         if (restoredGame) emitHighCardState(io, restoredGame);
+        if (restoredWarGame) emitWarState(io, restoredWarGame);
         emitPublicRooms(io);
         logger.info(`User joined room: ${player.username} -> ${roomCode}`);
         return success({ room: serialized }, "Room joined");
@@ -99,21 +105,30 @@ function createSocketServer(httpServer) {
     socket.on(CLIENT_EVENTS.ROOM_LEAVE, (payload = {}, acknowledge) => {
       safely(socket, acknowledge, () => {
         const player = requiredPlayer(socket);
-        const roomCode =
-          String(payload.roomCode || socket.data.roomCode || "").toUpperCase();
+        const roomCode = String(
+          payload.roomCode || socket.data.roomCode || "",
+        ).toUpperCase();
         const result = roomService.leaveRoom(roomCode, player.id);
         const gameResult = highCardService.leaveGame(roomCode, player.id);
+        const warResult = warService.leaveGame(roomCode, player.id);
         socket.leave(roomCode);
         socket.data.roomCode = null;
         socket.emit(SERVER_EVENTS.ROOM_LEFT, { roomCode });
         if (!result.deleted) {
-          io.to(roomCode).emit(SERVER_EVENTS.PLAYER_LEFT, { playerId: player.id });
+          io.to(roomCode).emit(SERVER_EVENTS.PLAYER_LEFT, {
+            playerId: player.id,
+          });
           roomService.broadcastRoomUpdate(io, roomCode);
           emitLatestChatMessage(io, result.room);
         }
         if (gameResult.game) emitHighCardState(io, gameResult.game);
         if (gameResult.matchOver) emitHighCardMatchOver(io, gameResult.game);
-        if (result.deleted) highCardService.cleanupGame(roomCode);
+        if (warResult.game) emitWarState(io, warResult.game);
+        if (warResult.matchOver) emitWarMatchOver(io, warResult.game);
+        if (result.deleted) {
+          highCardService.cleanupGame(roomCode);
+          warService.cleanupGame(roomCode);
+        }
         emitPublicRooms(io);
         logger.info(`User left room: ${player.username} -> ${roomCode}`);
         return success(
@@ -189,15 +204,15 @@ function createSocketServer(httpServer) {
         const serialized = roomService.serializeRoom(room);
         const startPayload = {
           ...serialized,
-          screen:
-            room.gameType === "high_card"
-              ? "high_card_multiplayer"
-              : "multiplayer_placeholder",
+          screen: gameScreen(room.gameType),
         };
         io.to(roomCode).emit(SERVER_EVENTS.ROOM_GAME_STARTING, startPayload);
         if (room.gameType === "high_card") {
           const game = highCardService.initGame(roomCode);
           emitHighCardState(io, game);
+        } else if (room.gameType === "war") {
+          const game = warService.initGame(roomCode);
+          emitWarState(io, game);
         }
         roomService.broadcastRoomUpdate(io, roomCode);
         emitPublicRooms(io);
@@ -232,7 +247,10 @@ function createSocketServer(httpServer) {
         const roomCode = currentRoomCode(socket, payload);
         const result = highCardService.drawCards(roomCode, player.id);
         const state = highCardService.sanitize(result.game);
-        io.to(roomCode).emit(SERVER_EVENTS.HIGH_CARD_ROUND_RESULT, result.result);
+        io.to(roomCode).emit(
+          SERVER_EVENTS.HIGH_CARD_ROUND_RESULT,
+          result.result,
+        );
         io.to(roomCode).emit(SERVER_EVENTS.HIGH_CARD_STATE, state);
         if (result.matchOver) {
           io.to(roomCode).emit(SERVER_EVENTS.HIGH_CARD_MATCH_OVER, state);
@@ -280,15 +298,90 @@ function createSocketServer(httpServer) {
           if (result.matchOver) emitHighCardMatchOver(io, result.game);
           return success(
             {
-              game: result.game
-                ? highCardService.sanitize(result.game)
-                : null,
+              game: result.game ? highCardService.sanitize(result.game) : null,
             },
             "High Card game left",
           );
         });
       },
     );
+
+    socket.on(CLIENT_EVENTS.WAR_INIT, (payload = {}, acknowledge) => {
+      safelyWar(socket, acknowledge, () => {
+        const player = requiredPlayer(socket);
+        const roomCode = currentRoomCode(socket, payload);
+        const joined = roomService.joinRoom(roomCode, { ...player });
+        socket.join(roomCode);
+        socket.data.roomCode = roomCode;
+        warService.restorePlayer(
+          roomCode,
+          joined.room.players.find((item) => item.id === player.id),
+        );
+        warService.getGame(roomCode) ?? warService.initGame(roomCode);
+        const state = warService.getClientState(roomCode, player.id);
+        socket.emit(SERVER_EVENTS.WAR_STATE, state);
+        return success({ game: state }, "War game loaded");
+      });
+    });
+
+    socket.on(CLIENT_EVENTS.WAR_BATTLE, (payload = {}, acknowledge) => {
+      safelyWar(socket, acknowledge, () => {
+        const player = requiredPlayer(socket);
+        const roomCode = currentRoomCode(socket, payload);
+        const result = warService.playBattle(roomCode, player.id);
+        const state = warService.sanitize(result.game);
+        if (result.warStarted) {
+          io.to(roomCode).emit(SERVER_EVENTS.WAR_STARTED, {
+            battleNumber: result.result.battleNumber,
+            tiedPlayerIds: Object.keys(result.result.warCards),
+            warCards: result.result.warCards,
+            pileCount: result.result.pileCount,
+          });
+        }
+        io.to(roomCode).emit(SERVER_EVENTS.WAR_BATTLE_RESULT, result.result);
+        io.to(roomCode).emit(SERVER_EVENTS.WAR_STATE, state);
+        if (result.matchOver) {
+          io.to(roomCode).emit(SERVER_EVENTS.WAR_MATCH_OVER, state);
+        }
+        return success({ game: state }, "Battle resolved");
+      });
+    });
+
+    socket.on(CLIENT_EVENTS.WAR_NEXT_BATTLE, (payload = {}, acknowledge) => {
+      safelyWar(socket, acknowledge, () => {
+        const player = requiredPlayer(socket);
+        const roomCode = currentRoomCode(socket, payload);
+        const game = warService.nextBattle(roomCode, player.id);
+        const state = warService.sanitize(game);
+        io.to(roomCode).emit(SERVER_EVENTS.WAR_STATE, state);
+        return success({ game: state }, "Next battle started");
+      });
+    });
+
+    socket.on(
+      CLIENT_EVENTS.WAR_REMATCH_REQUEST,
+      (payload = {}, acknowledge) => {
+        handleWarRematch(socket, acknowledge, payload);
+      },
+    );
+
+    socket.on(CLIENT_EVENTS.WAR_REMATCH_ACCEPT, (payload = {}, acknowledge) => {
+      handleWarRematch(socket, acknowledge, payload);
+    });
+
+    socket.on(CLIENT_EVENTS.WAR_LEAVE_GAME, (payload = {}, acknowledge) => {
+      safelyWar(socket, acknowledge, () => {
+        const player = requiredPlayer(socket);
+        const roomCode = currentRoomCode(socket, payload);
+        const result = warService.leaveGame(roomCode, player.id);
+        if (result.game) emitWarState(io, result.game);
+        if (result.matchOver) emitWarMatchOver(io, result.game);
+        return success(
+          { game: result.game ? warService.sanitize(result.game) : null },
+          "War game left",
+        );
+      });
+    });
 
     socket.on(CLIENT_EVENTS.CHAT_SEND, (payload = {}, acknowledge) => {
       safely(socket, acknowledge, () => {
@@ -320,10 +413,12 @@ function createSocketServer(httpServer) {
       if (!player) return;
       const rooms = roomService.markPlayerDisconnected(player.id);
       const games = highCardService.markDisconnected(player.id);
+      const warGames = warService.markDisconnected(player.id);
       for (const room of rooms) {
         roomService.broadcastRoomUpdate(io, room.roomCode);
       }
       for (const game of games) emitHighCardState(io, game);
+      for (const game of warGames) emitWarState(io, game);
       emitPublicRooms(io);
       const timer = setTimeout(() => {
         disconnectTimers.delete(player.id);
@@ -333,6 +428,7 @@ function createSocketServer(httpServer) {
             update.roomCode,
             player.id,
           );
+          const warResult = warService.leaveGame(update.roomCode, player.id);
           if (!update.deleted) {
             io.to(update.roomCode).emit(SERVER_EVENTS.PLAYER_LEFT, {
               playerId: player.id,
@@ -341,11 +437,14 @@ function createSocketServer(httpServer) {
             emitLatestChatMessage(io, update.room);
           } else {
             highCardService.cleanupGame(update.roomCode);
+            warService.cleanupGame(update.roomCode);
           }
           if (gameResult.game) emitHighCardState(io, gameResult.game);
           if (gameResult.matchOver) {
             emitHighCardMatchOver(io, gameResult.game);
           }
+          if (warResult.game) emitWarState(io, warResult.game);
+          if (warResult.matchOver) emitWarMatchOver(io, warResult.game);
         }
         roomService.cleanupEmptyRooms();
         emitPublicRooms(io);
@@ -382,6 +481,17 @@ function safelyHighCard(socket, acknowledge, action) {
   }
 }
 
+function safelyWar(socket, acknowledge, action) {
+  try {
+    const result = action();
+    acknowledge?.(result);
+  } catch (error) {
+    const response = failure(error.message);
+    socket.emit(SERVER_EVENTS.WAR_ERROR, response);
+    acknowledge?.(response);
+  }
+}
+
 function requiredPlayer(socket) {
   if (!socket.data.player) throw new Error("Connect the user first");
   return socket.data.player;
@@ -399,10 +509,22 @@ function leaveCurrentRoom(io, socket, playerId, nextRoomCode = null) {
   const current = socket.data.roomCode;
   if (!current || current === nextRoomCode) return;
   const result = roomService.leaveRoom(current, playerId);
+  const highCardResult = highCardService.leaveGame(current, playerId);
+  const warResult = warService.leaveGame(current, playerId);
   socket.leave(current);
   if (!result.deleted) {
     roomService.broadcastRoomUpdate(io, current);
     emitLatestChatMessage(io, result.room);
+  }
+  if (highCardResult.game) emitHighCardState(io, highCardResult.game);
+  if (highCardResult.matchOver) {
+    emitHighCardMatchOver(io, highCardResult.game);
+  }
+  if (warResult.game) emitWarState(io, warResult.game);
+  if (warResult.matchOver) emitWarMatchOver(io, warResult.game);
+  if (result.deleted) {
+    highCardService.cleanupGame(current);
+    warService.cleanupGame(current);
   }
 }
 
@@ -442,6 +564,19 @@ function emitHighCardMatchOver(io, game) {
   );
 }
 
+function emitWarState(io, game) {
+  if (!game) return;
+  io.to(game.roomCode).emit(SERVER_EVENTS.WAR_STATE, warService.sanitize(game));
+}
+
+function emitWarMatchOver(io, game) {
+  if (!game) return;
+  io.to(game.roomCode).emit(
+    SERVER_EVENTS.WAR_MATCH_OVER,
+    warService.sanitize(game),
+  );
+}
+
 function handleRematch(socket, acknowledge, payload) {
   safelyHighCard(socket, acknowledge, () => {
     const player = requiredPlayer(socket);
@@ -452,7 +587,9 @@ function handleRematch(socket, acknowledge, payload) {
       ioForSocket(socket)
         .to(roomCode)
         .emit(SERVER_EVENTS.HIGH_CARD_REMATCH_STARTED, state);
-      ioForSocket(socket).to(roomCode).emit(SERVER_EVENTS.HIGH_CARD_STATE, state);
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.HIGH_CARD_STATE, state);
     } else {
       ioForSocket(socket)
         .to(roomCode)
@@ -461,10 +598,43 @@ function handleRematch(socket, acknowledge, payload) {
           username: result.player.username,
           rematchRequests: state.rematchRequests,
         });
-      ioForSocket(socket).to(roomCode).emit(SERVER_EVENTS.HIGH_CARD_STATE, state);
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.HIGH_CARD_STATE, state);
     }
     return success({ game: state }, "Rematch request updated");
   });
+}
+
+function handleWarRematch(socket, acknowledge, payload) {
+  safelyWar(socket, acknowledge, () => {
+    const player = requiredPlayer(socket);
+    const roomCode = currentRoomCode(socket, payload);
+    const result = warService.requestRematch(roomCode, player.id);
+    const state = warService.sanitize(result.game);
+    if (result.started) {
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.WAR_REMATCH_STARTED, state);
+      ioForSocket(socket).to(roomCode).emit(SERVER_EVENTS.WAR_STATE, state);
+    } else {
+      ioForSocket(socket)
+        .to(roomCode)
+        .emit(SERVER_EVENTS.WAR_REMATCH_REQUESTED, {
+          playerId: result.player.id,
+          username: result.player.username,
+          rematchRequests: state.rematchRequests,
+        });
+      ioForSocket(socket).to(roomCode).emit(SERVER_EVENTS.WAR_STATE, state);
+    }
+    return success({ game: state }, "Rematch request updated");
+  });
+}
+
+function gameScreen(gameType) {
+  if (gameType === "high_card") return "high_card_multiplayer";
+  if (gameType === "war") return "war_multiplayer";
+  return "multiplayer_placeholder";
 }
 
 function ioForSocket(socket) {
@@ -476,4 +646,5 @@ module.exports = {
   roomService,
   chatService,
   highCardService,
+  warService,
 };

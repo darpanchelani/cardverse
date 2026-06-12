@@ -80,15 +80,18 @@ class HomeScreen extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 760),
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 26,
                           backgroundColor: AppColors.gold,
-                          child: Text(
-                            'GP',
-                            style: TextStyle(
-                              color: AppColors.ink,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: 'Arial',
+                          child: AnimatedBuilder(
+                            animation: progress,
+                            builder: (context, child) => Text(
+                              _initials(progress.profile.username),
+                              style: const TextStyle(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: 'Arial',
+                              ),
                             ),
                           ),
                         ),
@@ -167,6 +170,21 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+String _initials(String name) {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return 'CV';
+  if (parts.length == 1) {
+    return parts.first
+        .substring(0, parts.first.length.clamp(1, 2))
+        .toUpperCase();
+  }
+  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }
 
 class _ProgressSummary extends StatelessWidget {

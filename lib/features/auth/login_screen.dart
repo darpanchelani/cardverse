@@ -1,12 +1,33 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:cardverse/core/widgets/custom_text_field.dart';
+import 'package:cardverse/features/auth/local_auth_service.dart';
+import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
+import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,40 +51,55 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your next hand is waiting.',
+                    'Sign in to your locally saved CardVerse account.',
                     textAlign: TextAlign.center,
                     style: Theme.of(
                       context,
                     ).textTheme.bodyLarge?.copyWith(color: AppColors.mutedText),
                   ),
                   const SizedBox(height: 38),
-                  const CustomTextField(
-                    label: 'Email',
+                  CustomTextField(
+                    label: 'Email or username',
                     icon: Icons.mail_outline_rounded,
+                    controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 16),
-                  const CustomTextField(
+                  CustomTextField(
                     label: 'Password',
                     icon: Icons.lock_outline_rounded,
+                    controller: _passwordController,
                     obscureText: true,
                   ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.danger,
+                        fontFamily: 'Arial',
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   CustomButton(
-                    label: 'Login',
+                    label: _isLoading ? 'Signing In...' : 'Login',
                     icon: Icons.login_rounded,
-                    onPressed: () => context.go(AppRoutes.home),
+                    onPressed: _isLoading ? null : _login,
                   ),
                   const SizedBox(height: 12),
                   CustomButton(
                     label: 'Continue as Guest',
                     icon: Icons.person_outline_rounded,
                     isOutlined: true,
-                    onPressed: () => context.go(AppRoutes.home),
+                    onPressed: _isLoading ? null : _continueAsGuest,
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => context.push(AppRoutes.register),
+                    onPressed: _isLoading
+                        ? null
+                        : () => context.push(AppRoutes.register),
                     child: const Text('Create New Account'),
                   ),
                 ],
@@ -73,6 +109,54 @@ class LoginScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Enter your email and password.');
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final storage = await LocalStorageService.create();
+    final account = await LocalAuthService(
+      storage,
+    ).login(email: email, password: password);
+    if (!mounted) return;
+    if (account == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage =
+            'Account not found or password is incorrect. Create an account first.';
+      });
+      return;
+    }
+    await _applyIdentity(accountId: account.id, username: account.username);
+  }
+
+  Future<void> _continueAsGuest() async {
+    final storage = await LocalStorageService.create();
+    await LocalAuthService(storage).continueAsGuest();
+    if (!mounted) return;
+    await _applyIdentity(accountId: 'guest', username: 'Guest Player');
+  }
+
+  Future<void> _applyIdentity({
+    required String accountId,
+    required String username,
+  }) async {
+    final progress = ProgressScope.of(context);
+    await progress.switchAccount(accountId: accountId, username: username);
+    if (!mounted) return;
+    MultiplayerScope.of(context).connection.updateIdentity(
+      username: username,
+      level: progress.profile.level,
+    );
+    context.go(AppRoutes.home);
   }
 }
 

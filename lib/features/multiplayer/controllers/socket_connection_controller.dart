@@ -6,19 +6,24 @@ class SocketConnectionController extends ChangeNotifier {
   SocketConnectionController({
     required SocketService socketService,
     required this.userId,
-    required this.username,
+    required String username,
     this.avatar = 'default',
-    this.level = 1,
-  }) : _socketService = socketService {
+    int level = 1,
+  }) : _socketService = socketService,
+       _username = username,
+       _level = level {
     _socketService.addListener(_syncState);
     _syncState();
   }
 
   final SocketService _socketService;
   final String userId;
-  final String username;
   final String avatar;
-  final int level;
+  String _username;
+  int _level;
+
+  String get username => _username;
+  int get level => _level;
 
   bool isConnected = false;
   bool isConnecting = false;
@@ -40,6 +45,14 @@ class SocketConnectionController extends ChangeNotifier {
   }
 
   void disconnect() => _socketService.disconnect();
+
+  void updateIdentity({required String username, required int level}) {
+    final changed = _username != username || _level != level;
+    _username = username;
+    _level = level;
+    if (changed && isConnected) disconnect();
+    notifyListeners();
+  }
 
   Future<void> reconnect() async {
     disconnect();

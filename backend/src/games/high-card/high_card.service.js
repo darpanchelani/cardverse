@@ -35,7 +35,9 @@ class HighCardService {
   getGame(roomCode) {
     return (
       this.activeHighCardGames.get(
-        String(roomCode || "").trim().toUpperCase(),
+        String(roomCode || "")
+          .trim()
+          .toUpperCase(),
       ) || null
     );
   }
@@ -197,7 +199,9 @@ class HighCardService {
 
   cleanupGame(roomCode) {
     this.activeHighCardGames.delete(
-      String(roomCode || "").trim().toUpperCase(),
+      String(roomCode || "")
+        .trim()
+        .toUpperCase(),
     );
   }
 

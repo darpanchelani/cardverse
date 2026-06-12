@@ -7,7 +7,11 @@ function validateUser(payload = {}) {
 }
 
 function validateRoomCode(roomCode) {
-  return /^[A-Z0-9]{6}$/.test(String(roomCode || "").trim().toUpperCase())
+  return /^[A-Z0-9]{6}$/.test(
+    String(roomCode || "")
+      .trim()
+      .toUpperCase(),
+  )
     ? null
     : "Room code must be 6 uppercase letters or numbers";
 }

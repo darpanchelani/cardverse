@@ -9,12 +9,16 @@ abstract final class StorageKeys {
   static const blackjackChips = 'blackjack_chips';
   static const hasSeenOnboarding = 'has_seen_onboarding';
   static const multiplayerUserId = 'multiplayer_user_id';
+  static const localAccount = 'local_account';
+  static const localAccounts = 'local_accounts';
+  static const activeAccountId = 'active_account_id';
 }
 
 class LocalStorageService {
   LocalStorageService(this._preferences);
 
   final SharedPreferences _preferences;
+  String _accountId = 'guest';
 
   static Future<LocalStorageService> create() async {
     return LocalStorageService(await SharedPreferences.getInstance());
@@ -44,5 +48,35 @@ class LocalStorageService {
 
   Future<void> clearAll() async {
     await _preferences.clear();
+  }
+
+  String scopedKey(String key) => 'account:$_accountId:$key';
+
+  Future<void> useAccount(String accountId) async {
+    _accountId = accountId.trim().isEmpty ? 'guest' : accountId.trim();
+    await _migrateLegacyProgress();
+  }
+
+  Future<void> _migrateLegacyProgress() async {
+    for (final key in [
+      StorageKeys.playerProfile,
+      StorageKeys.gameStats,
+      StorageKeys.matchHistory,
+      StorageKeys.achievements,
+      StorageKeys.leaderboard,
+      StorageKeys.blackjackChips,
+    ]) {
+      final scoped = scopedKey(key);
+      if (_preferences.containsKey(scoped) || !_preferences.containsKey(key)) {
+        continue;
+      }
+      final value = _preferences.get(key);
+      if (value is String) {
+        await _preferences.setString(scoped, value);
+      } else if (value is int) {
+        await _preferences.setInt(scoped, value);
+      }
+      await _preferences.remove(key);
+    }
   }
 }

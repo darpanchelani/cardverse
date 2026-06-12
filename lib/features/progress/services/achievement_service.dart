@@ -94,7 +94,9 @@ class AchievementService {
   ];
 
   Future<List<AchievementModel>> getAchievements() async {
-    final raw = await _storage.getString(StorageKeys.achievements);
+    final raw = await _storage.getString(
+      _storage.scopedKey(StorageKeys.achievements),
+    );
     if (raw == null) return List.of(defaultAchievements);
     try {
       final saved = List<dynamic>.from(jsonDecode(raw) as List)
@@ -113,7 +115,7 @@ class AchievementService {
 
   Future<void> saveAchievements(List<AchievementModel> achievements) async {
     await _storage.saveString(
-      StorageKeys.achievements,
+      _storage.scopedKey(StorageKeys.achievements),
       jsonEncode(achievements.map((item) => item.toJson()).toList()),
     );
   }

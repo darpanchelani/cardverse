@@ -56,7 +56,7 @@ class LeaderboardService {
 
   Future<void> refreshLeaderboard(List<LeaderboardEntryModel> entries) async {
     await _storage.saveString(
-      StorageKeys.leaderboard,
+      _storage.scopedKey(StorageKeys.leaderboard),
       jsonEncode(entries.map((entry) => entry.toJson()).toList()),
     );
   }
@@ -75,6 +75,7 @@ class LeaderboardService {
       'high_card' => 0.45,
       'high_card_online' => 0.2,
       'war' => 0.3,
+      'war_online' => 0.18,
       'blackjack' => 0.25,
       _ => 1.0,
     };

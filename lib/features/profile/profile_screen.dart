@@ -1,6 +1,9 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/utils/number_format_utils.dart';
+import 'package:cardverse/features/auth/local_auth_service.dart';
+import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:cardverse/features/progress/widgets/achievement_badge_widget.dart';
 import 'package:cardverse/features/progress/widgets/match_history_tile_widget.dart';
@@ -65,12 +68,12 @@ class ProfileScreen extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 52,
                   backgroundColor: AppColors.gold,
                   child: Text(
-                    'GP',
-                    style: TextStyle(
+                    _initials(profile.username),
+                    style: const TextStyle(
                       color: AppColors.ink,
                       fontSize: 30,
                       fontWeight: FontWeight.w800,
@@ -171,6 +174,15 @@ class ProfileScreen extends StatelessWidget {
                   label: const Text('View Achievements'),
                 ),
                 const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => _confirmLogout(context),
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text('Log Out'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.gold,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 TextButton.icon(
                   onPressed: () => _confirmReset(context, controller),
                   icon: const Icon(Icons.delete_forever_outlined),
@@ -213,6 +225,60 @@ class ProfileScreen extends StatelessWidget {
     );
     if (confirmed == true) await controller.clearProgress();
   }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text(
+          'Your account progress and match history will stay saved on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final multiplayer = MultiplayerScope.of(context);
+    if (multiplayer.room.currentRoom != null &&
+        multiplayer.connection.isConnected) {
+      await multiplayer.room.leaveRoom();
+    }
+    multiplayer.chat.clearMessages();
+    multiplayer.highCard.clear();
+    multiplayer.war.clear();
+    multiplayer.room.clearRoom();
+    multiplayer.connection.disconnect();
+
+    final storage = await LocalStorageService.create();
+    await LocalAuthService(storage).logout();
+    if (context.mounted) context.go(AppRoutes.login);
+  }
+}
+
+String _initials(String name) {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return 'CV';
+  if (parts.length == 1) {
+    return parts.first
+        .substring(0, parts.first.length.clamp(1, 2))
+        .toUpperCase();
+  }
+  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }
 
 class _SectionHeader extends StatelessWidget {

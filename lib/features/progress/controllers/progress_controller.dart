@@ -35,6 +35,7 @@ class ProgressController extends ChangeNotifier {
     'high_card': GameStatsModel.empty('high_card'),
     'high_card_online': GameStatsModel.empty('high_card_online'),
     'war': GameStatsModel.empty('war'),
+    'war_online': GameStatsModel.empty('war_online'),
     'blackjack': GameStatsModel.empty('blackjack'),
   };
   List<MatchHistoryModel> matchHistory = [];
@@ -186,6 +187,31 @@ class ProgressController extends ChangeNotifier {
     await _progressService.clearProgress();
     achievementNotice = null;
     await refreshProgress();
+  }
+
+  Future<void> updateUsername(String username) async {
+    profile = profile.copyWith(
+      username: username.trim(),
+      updatedAt: DateTime.now(),
+    );
+    await _progressService.saveProfile(profile);
+    leaderboard = await _leaderboardService.getLeaderboard(
+      profile: profile,
+      stats: gameStats,
+    );
+    await _leaderboardService.refreshLeaderboard(leaderboard);
+    notifyListeners();
+  }
+
+  Future<void> switchAccount({
+    required String accountId,
+    required String username,
+  }) async {
+    _recordingIds.clear();
+    achievementNotice = null;
+    await _progressService.useAccount(accountId);
+    await refreshProgress();
+    if (profile.username != username) await updateUsername(username);
   }
 
   void consumeAchievementNotice() {

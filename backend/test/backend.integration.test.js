@@ -7,6 +7,7 @@ const {
   createSocketServer,
   roomService,
   highCardService,
+  warService,
 } = require("../src/socket");
 
 let server;
@@ -24,6 +25,7 @@ before(async () => {
 beforeEach(() => {
   roomService.rooms.clear();
   highCardService.activeHighCardGames.clear();
+  warService.activeWarGames.clear();
 });
 
 after(async () => {
@@ -238,6 +240,91 @@ test("High Card bot participates and full deck stays server-side", async () => {
   assert.equal(highCardService.getGame(roomCode).deck.length, 50);
 });
 
+test("online War synchronizes battles, hides decks, and starts a rematch", async () => {
+  const host = await connectUser("war_host", "War Host");
+  const guest = await connectUser("war_guest", "War Guest");
+  const created = await emitAck(host, "room:create", {
+    gameType: "war",
+    maxPlayers: 2,
+    isPrivate: true,
+    allowBots: true,
+    allowChat: true,
+    settings: { maxBattles: 25, warMode: "classic" },
+  });
+  const roomCode = created.room.roomCode;
+  await emitAck(guest, "room:join", { roomCode });
+  await emitAck(host, "room:toggle_ready", { roomCode });
+  await emitAck(guest, "room:toggle_ready", { roomCode });
+
+  const initialStatePromise = once(host, "war:state");
+  const startEventPromise = once(guest, "room:game_starting");
+  await emitAck(host, "room:start_game", { roomCode });
+  assert.equal((await startEventPromise).screen, "war_multiplayer");
+  const initial = await initialStatePromise;
+  assert.equal(initial.status, "playing");
+  assert.equal(initial.currentBattle, 1);
+  assert.equal("playerDecks" in initial, false);
+  assert.equal("battlePile" in initial, false);
+
+  const game = warService.getGame(roomCode);
+  game.maxBattles = 2;
+  const battleResultPromise = once(guest, "war:battle_result");
+  const first = await emitAck(host, "war:battle", { roomCode });
+  assert.equal(first.success, true);
+  assert.equal((await battleResultPromise).battleNumber, 1);
+  assert.equal("playerDecks" in first.game, false);
+  assert.equal(
+    Object.values(first.game.cardCounts).reduce((sum, count) => sum + count, 0),
+    52,
+  );
+
+  const duplicate = await emitAck(guest, "war:battle", { roomCode });
+  assert.equal(duplicate.success, false);
+  const next = await emitAck(guest, "war:next_battle", { roomCode });
+  assert.equal(next.game.currentBattle, 2);
+  const final = await emitAck(host, "war:battle", { roomCode });
+  assert.equal(final.game.status, "match_over");
+  assert.ok(final.game.matchWinner);
+
+  const requested = await emitAck(host, "war:rematch_request", { roomCode });
+  assert.deepEqual(requested.game.rematchRequests, ["war_host"]);
+  const rematchPromise = once(guest, "war:rematch_started");
+  const accepted = await emitAck(guest, "war:rematch_accept", { roomCode });
+  assert.equal(accepted.game.status, "playing");
+  const rematch = await rematchPromise;
+  assert.equal(rematch.currentBattle, 1);
+  assert.equal(rematch.battleHistory.length, 0);
+  assert.deepEqual(rematch.scores, { war_host: 0, war_guest: 0 });
+});
+
+test("War bot participates while server retains all decks", async () => {
+  const host = await connectUser("war_bot_host", "War Bot Host");
+  const created = await emitAck(host, "room:create", {
+    gameType: "war",
+    maxPlayers: 2,
+    isPrivate: true,
+    allowBots: true,
+    allowChat: false,
+    settings: { maxBattles: 25, warMode: "quick" },
+  });
+  const roomCode = created.room.roomCode;
+  await emitAck(host, "room:toggle_ready", { roomCode });
+  await emitAck(host, "room:add_bot", { roomCode });
+  await emitAck(host, "room:start_game", { roomCode });
+
+  const battle = await emitAck(host, "war:battle", { roomCode });
+  assert.equal(Object.keys(battle.game.currentBattleCards).length, 2);
+  assert.equal("playerDecks" in battle.game, false);
+  const serverGame = warService.getGame(roomCode);
+  assert.equal(
+    Object.values(serverGame.playerDecks).reduce(
+      (sum, cards) => sum + cards.length,
+      0,
+    ),
+    52,
+  );
+});
+
 async function connectUser(userId, username) {
   const client = createClient(baseUrl, {
     transports: ["websocket"],
@@ -258,7 +345,10 @@ async function connectUser(userId, username) {
 
 function emitAck(client, event, payload) {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`${event} timed out`)), 3000);
+    const timeout = setTimeout(
+      () => reject(new Error(`${event} timed out`)),
+      3000,
+    );
     client.emit(event, payload, (response) => {
       clearTimeout(timeout);
       resolve(response);
@@ -268,7 +358,10 @@ function emitAck(client, event, payload) {
 
 function once(client, event) {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`${event} timed out`)), 3000);
+    const timeout = setTimeout(
+      () => reject(new Error(`${event} timed out`)),
+      3000,
+    );
     client.once(event, (payload) => {
       clearTimeout(timeout);
       resolve(payload);

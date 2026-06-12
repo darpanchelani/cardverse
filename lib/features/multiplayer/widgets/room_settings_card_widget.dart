@@ -12,6 +12,15 @@ class RoomSettingsCardWidget extends StatelessWidget {
     final values = [
       ('Turn timer', timer == 0 || timer == null ? 'No timer' : '${timer}s'),
       if (settings['maxRounds'] != null) ('Rounds', '${settings['maxRounds']}'),
+      if (settings['maxBattles'] != null)
+        (
+          'Battle limit',
+          settings['maxBattles'] == 0
+              ? 'No limit'
+              : '${settings['maxBattles']}',
+        ),
+      if (settings['warMode'] != null)
+        ('War mode', settings['warMode'] == 'quick' ? 'Quick War' : 'Classic'),
       ('Difficulty', '${settings['difficulty'] ?? 'Normal'}'),
       (
         'Spectators',

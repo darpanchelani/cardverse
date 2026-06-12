@@ -10,6 +10,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = await LocalStorageService.create();
+    await storage.useAccount('guest');
     service = ProgressService(storage);
   });
 
@@ -86,6 +87,28 @@ void main() {
     expect(record.match.xpEarned, 50);
   });
 
+  test('online War uses its configured rewards', () async {
+    final record = await service.recordGameResult(
+      gameType: 'war_online',
+      gameName: 'Online War',
+      result: 'win',
+      opponent: 'Multiplayer',
+      playerScore: 12,
+      opponentScore: 9,
+      extraData: const {'roomCode': 'WR12CD'},
+      matchId: 'online-war-1',
+      rewardCoins: 150,
+      rewardXp: 75,
+    );
+
+    expect(record.profile.coins, 650);
+    expect(record.profile.xp, 75);
+    expect(record.profile.favoriteGame, 'Online War');
+    expect(record.stats['war_online']?.wins, 1);
+    expect(record.match.coinsEarned, 150);
+    expect(record.match.xpEarned, 75);
+  });
+
   test('corrupt JSON falls back to default progress', () async {
     await storage.saveString(StorageKeys.playerProfile, '{not-json');
     await storage.saveString(StorageKeys.gameStats, 'not-json');
@@ -99,7 +122,13 @@ void main() {
     expect(profile.totalGames, 0);
     expect(
       stats.keys,
-      containsAll(['high_card', 'high_card_online', 'war', 'blackjack']),
+      containsAll([
+        'high_card',
+        'high_card_online',
+        'war',
+        'war_online',
+        'blackjack',
+      ]),
     );
     expect(history, isEmpty);
   });
@@ -111,5 +140,42 @@ void main() {
     expect(ProgressService.calculateLevel(500), 4);
     expect(ProgressService.calculateLevel(900), 5);
     expect(ProgressService.calculateLevel(1400), 6);
+  });
+
+  test('keeps progress and history isolated per account', () async {
+    await service.useAccount('darpan@example.com');
+    await service.recordGameResult(
+      gameType: 'war',
+      gameName: 'War',
+      result: 'win',
+      opponent: 'Computer',
+      playerScore: 5,
+      opponentScore: 2,
+      extraData: const {},
+      matchId: 'darpan-war-1',
+    );
+
+    await service.useAccount('sara@example.com');
+    final saraProfile = await service.getProfile();
+    final saraHistory = await service.getMatchHistory();
+    expect(saraProfile.totalGames, 0);
+    expect(saraHistory, isEmpty);
+
+    await service.recordGameResult(
+      gameType: 'blackjack',
+      gameName: 'Blackjack',
+      result: 'loss',
+      opponent: 'Dealer',
+      playerScore: 18,
+      opponentScore: 20,
+      extraData: const {},
+      matchId: 'sara-blackjack-1',
+    );
+
+    await service.useAccount('darpan@example.com');
+    final darpanProfile = await service.getProfile();
+    final darpanHistory = await service.getMatchHistory();
+    expect(darpanProfile.totalWins, 1);
+    expect(darpanHistory.single.id, 'darpan-war-1');
   });
 }
