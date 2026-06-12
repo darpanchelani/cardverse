@@ -11,6 +11,12 @@ const CLIENT_EVENTS = Object.freeze({
   CHAT_SEND: "chat:send",
   TYPING_START: "typing:start",
   TYPING_STOP: "typing:stop",
+  HIGH_CARD_INIT: "high_card:init",
+  HIGH_CARD_DRAW: "high_card:draw",
+  HIGH_CARD_NEXT_ROUND: "high_card:next_round",
+  HIGH_CARD_REMATCH_REQUEST: "high_card:rematch_request",
+  HIGH_CARD_REMATCH_ACCEPT: "high_card:rematch_accept",
+  HIGH_CARD_LEAVE_GAME: "high_card:leave_game",
 });
 
 const SERVER_EVENTS = Object.freeze({
@@ -29,6 +35,12 @@ const SERVER_EVENTS = Object.freeze({
   PLAYER_LEFT: "player:left",
   PLAYER_READY_CHANGED: "player:ready_changed",
   ERROR_MESSAGE: "error:message",
+  HIGH_CARD_STATE: "high_card:state",
+  HIGH_CARD_ROUND_RESULT: "high_card:round_result",
+  HIGH_CARD_MATCH_OVER: "high_card:match_over",
+  HIGH_CARD_ERROR: "high_card:error",
+  HIGH_CARD_REMATCH_REQUESTED: "high_card:rematch_requested",
+  HIGH_CARD_REMATCH_STARTED: "high_card:rematch_started",
 });
 
 module.exports = { CLIENT_EVENTS, SERVER_EVENTS };

@@ -18,6 +18,12 @@ abstract final class SocketEvents {
   static const chatSend = 'chat:send';
   static const typingStart = 'typing:start';
   static const typingStop = 'typing:stop';
+  static const highCardInit = 'high_card:init';
+  static const highCardDraw = 'high_card:draw';
+  static const highCardNextRound = 'high_card:next_round';
+  static const highCardRematchRequest = 'high_card:rematch_request';
+  static const highCardRematchAccept = 'high_card:rematch_accept';
+  static const highCardLeaveGame = 'high_card:leave_game';
 
   static const connectionSuccess = 'connection:success';
   static const roomCreated = 'room:created';
@@ -31,6 +37,12 @@ abstract final class SocketEvents {
   static const chatHistory = 'chat:history';
   static const typingUpdate = 'typing:update';
   static const errorMessage = 'error:message';
+  static const highCardState = 'high_card:state';
+  static const highCardRoundResult = 'high_card:round_result';
+  static const highCardMatchOver = 'high_card:match_over';
+  static const highCardError = 'high_card:error';
+  static const highCardRematchRequested = 'high_card:rematch_requested';
+  static const highCardRematchStarted = 'high_card:rematch_started';
 }
 
 class SocketService extends ChangeNotifier {
@@ -75,7 +87,7 @@ class SocketService extends ChangeNotifier {
       onTimeout: () {
         _setState(
           SocketConnectionState.failed,
-          'Could not connect to the CardVerse server.',
+          'Could not connect to the CardVerse server at $baseUrl.',
         );
         throw TimeoutException('Socket connection timed out');
       },
@@ -114,7 +126,10 @@ class SocketService extends ChangeNotifier {
       _setState(SocketConnectionState.connecting);
     });
     socket.on('connect_error', (error) {
-      _setState(SocketConnectionState.failed, error.toString());
+      _setState(
+        SocketConnectionState.failed,
+        'Could not connect to the CardVerse server at $baseUrl.',
+      );
       if (_connectionCompleter?.isCompleted == false) {
         _connectionCompleter!.completeError(error);
       }

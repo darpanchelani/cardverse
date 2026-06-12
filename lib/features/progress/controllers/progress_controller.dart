@@ -33,6 +33,7 @@ class ProgressController extends ChangeNotifier {
   PlayerProfileModel profile = PlayerProfileModel.defaults();
   Map<String, GameStatsModel> gameStats = {
     'high_card': GameStatsModel.empty('high_card'),
+    'high_card_online': GameStatsModel.empty('high_card_online'),
     'war': GameStatsModel.empty('war'),
     'blackjack': GameStatsModel.empty('blackjack'),
   };
@@ -76,6 +77,8 @@ class ProgressController extends ChangeNotifier {
     required int opponentScore,
     required Map<String, dynamic> extraData,
     int durationSeconds = 0,
+    int? rewardCoins,
+    int? rewardXp,
   }) async {
     if (_recordingIds.contains(recordId) ||
         matchHistory.any((match) => match.id == recordId)) {
@@ -93,6 +96,8 @@ class ProgressController extends ChangeNotifier {
         extraData: extraData,
         matchId: recordId,
         durationSeconds: durationSeconds,
+        rewardCoins: rewardCoins,
+        rewardXp: rewardXp,
       );
       profile = record.profile;
       gameStats = record.stats;

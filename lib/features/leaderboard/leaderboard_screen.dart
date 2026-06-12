@@ -60,6 +60,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 children: [
                   _Filter('Overall', 'overall', _filter, _changeFilter),
                   _Filter('High Card', 'high_card', _filter, _changeFilter),
+                  _Filter(
+                    'Online High Card',
+                    'high_card_online',
+                    _filter,
+                    _changeFilter,
+                  ),
                   _Filter('War', 'war', _filter, _changeFilter),
                   _Filter('Blackjack', 'blackjack', _filter, _changeFilter),
                 ],

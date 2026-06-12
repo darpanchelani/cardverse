@@ -12,6 +12,9 @@ import 'package:cardverse/features/multiplayer/services/dummy_room_service.dart'
 import 'package:cardverse/features/multiplayer/services/room_code_service.dart';
 import 'package:cardverse/features/multiplayer/services/socket_chat_service.dart';
 import 'package:cardverse/features/multiplayer/services/socket_room_service.dart';
+import 'package:cardverse/features/multiplayer/high_card/controllers/high_card_multiplayer_controller.dart';
+import 'package:cardverse/features/multiplayer/high_card/services/socket_high_card_service.dart';
+import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/widgets.dart';
 
 class MultiplayerControllers {
@@ -21,12 +24,14 @@ class MultiplayerControllers {
     required this.chat,
     required this.invites,
     required this.connection,
+    required this.highCard,
   });
 
   factory MultiplayerControllers.create({
     String userId = 'guest_local_user',
     String username = 'Guest Player',
     int level = 1,
+    ProgressController? progressController,
   }) {
     final socket = SocketService();
     final connection = SocketConnectionController(
@@ -44,6 +49,11 @@ class MultiplayerControllers {
       chat: ChatController(SocketChatService(socket)),
       invites: InviteController(),
       connection: connection,
+      highCard: HighCardMultiplayerController(
+        service: SocketHighCardService(socket),
+        currentUserId: userId,
+        progressController: progressController,
+      ),
     );
     unawaited(controllers.friends.loadFriends());
     unawaited(controllers.invites.loadInvites());
@@ -58,6 +68,7 @@ class MultiplayerControllers {
   final ChatController chat;
   final InviteController invites;
   final SocketConnectionController connection;
+  final HighCardMultiplayerController highCard;
 
   factory MultiplayerControllers.dummy() {
     final socket = SocketService();
@@ -73,6 +84,10 @@ class MultiplayerControllers {
         socketService: socket,
         userId: 'current_user',
         username: 'Guest Player',
+      ),
+      highCard: HighCardMultiplayerController(
+        service: SocketHighCardService(socket),
+        currentUserId: 'current_user',
       ),
     );
   }

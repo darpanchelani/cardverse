@@ -44,6 +44,7 @@ class ProgressService {
   Future<Map<String, GameStatsModel>> getAllGameStats() async {
     final defaults = {
       'high_card': GameStatsModel.empty('high_card'),
+      'high_card_online': GameStatsModel.empty('high_card_online'),
       'war': GameStatsModel.empty('war'),
       'blackjack': GameStatsModel.empty('blackjack'),
     };
@@ -125,9 +126,15 @@ class ProgressService {
     required Map<String, dynamic> extraData,
     String? matchId,
     int durationSeconds = 0,
+    int? rewardCoins,
+    int? rewardXp,
   }) async {
     final now = DateTime.now();
-    final reward = _rewardFor(result);
+    final defaultReward = _rewardFor(result);
+    final reward = (
+      rewardCoins ?? defaultReward.$1,
+      rewardXp ?? defaultReward.$2,
+    );
     final isWin = result == 'win';
     final isLoss = result == 'loss';
     final isDraw = result == 'draw' || result == 'push';
@@ -233,6 +240,7 @@ class ProgressService {
     if (played.isEmpty || played.first.gamesPlayed == 0) return 'None';
     return switch (played.first.gameType) {
       'high_card' => 'High Card',
+      'high_card_online' => 'Online High Card',
       'blackjack' => 'Blackjack',
       'war' => 'War',
       _ => played.first.gameType,

@@ -64,6 +64,28 @@ void main() {
     expect(stats.draws, 1);
   });
 
+  test('online High Card uses its configured rewards', () async {
+    final record = await service.recordGameResult(
+      gameType: 'high_card_online',
+      gameName: 'Online High Card',
+      result: 'win',
+      opponent: 'Multiplayer',
+      playerScore: 3,
+      opponentScore: 2,
+      extraData: const {'roomCode': 'AB12CD'},
+      matchId: 'online-1',
+      rewardCoins: 100,
+      rewardXp: 50,
+    );
+
+    expect(record.profile.coins, 600);
+    expect(record.profile.xp, 50);
+    expect(record.profile.favoriteGame, 'Online High Card');
+    expect(record.stats['high_card_online']?.wins, 1);
+    expect(record.match.coinsEarned, 100);
+    expect(record.match.xpEarned, 50);
+  });
+
   test('corrupt JSON falls back to default progress', () async {
     await storage.saveString(StorageKeys.playerProfile, '{not-json');
     await storage.saveString(StorageKeys.gameStats, 'not-json');
@@ -75,7 +97,10 @@ void main() {
 
     expect(profile.username, 'Guest Player');
     expect(profile.totalGames, 0);
-    expect(stats.keys, containsAll(['high_card', 'war', 'blackjack']));
+    expect(
+      stats.keys,
+      containsAll(['high_card', 'high_card_online', 'war', 'blackjack']),
+    );
     expect(history, isEmpty);
   });
 

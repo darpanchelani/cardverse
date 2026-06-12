@@ -29,6 +29,7 @@ Future<void> main() async {
     userId: multiplayerUserId,
     username: controller.profile.username,
     level: controller.profile.level,
+    progressController: controller,
   );
   runApp(
     CardVerseApp(

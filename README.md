@@ -16,6 +16,9 @@ states.
 - Playable High Card game against a computer opponent
 - Playable War game with card ownership, battles, repeated wars, and win tracking
 - Playable Blackjack with dealer rules, Ace-aware scoring, betting, and chips
+- Real online High Card matches for 2 to 4 players and bots
+- Server-owned deck, card draws, round scoring, match results, and rematches
+- Configurable 3, 5, or 10-round online High Card rooms
 - Shared playing-card model, deck engine, rules, and card widgets
 - Persistent profile statistics, coins, XP, levels, and win streaks
 - Per-game statistics for High Card, War, and Blackjack
@@ -48,6 +51,7 @@ Playable:
 - High Card
 - War
 - Blackjack
+- Online High Card
 
 Coming soon:
 
@@ -119,26 +123,20 @@ npm install
 npm run dev
 ```
 
-The server runs at `http://localhost:5000`. Verify it with:
+The server runs at `http://localhost:5050`. Verify it with:
 
 ```bash
-curl http://localhost:5000/health
+curl http://localhost:5050/health
 ```
 
-On macOS, AirPlay Receiver may already use port `5000`. Either disable AirPlay
-Receiver in System Settings or run the backend on another port:
-
-```bash
-PORT=5050 npm run dev
-```
-
-Use the same port in `SOCKET_BASE_URL` when starting Flutter.
+CardVerse uses port `5050` by default because macOS AirPlay Receiver commonly
+occupies port `5000`.
 
 ### Run on macOS
 
 ```bash
 flutter run -d macos \
-  --dart-define=SOCKET_BASE_URL=http://localhost:5000
+  --dart-define=SOCKET_BASE_URL=http://localhost:5050
 ```
 
 ### Run on iOS Simulator
@@ -146,7 +144,7 @@ flutter run -d macos \
 ```bash
 open -a Simulator
 flutter run \
-  --dart-define=SOCKET_BASE_URL=http://localhost:5000
+  --dart-define=SOCKET_BASE_URL=http://localhost:5050
 ```
 
 To target a specific simulator:
@@ -154,7 +152,7 @@ To target a specific simulator:
 ```bash
 flutter devices
 flutter run -d <device-id> \
-  --dart-define=SOCKET_BASE_URL=http://localhost:5000
+  --dart-define=SOCKET_BASE_URL=http://localhost:5050
 ```
 
 ### Run on Android
@@ -165,18 +163,18 @@ then run:
 ```bash
 flutter devices
 flutter run -d <device-id> \
-  --dart-define=SOCKET_BASE_URL=http://10.0.2.2:5000
+  --dart-define=SOCKET_BASE_URL=http://10.0.2.2:5050
 ```
 
 For a physical Android or iOS device, replace the URL with the Mac's local
-network IP, for example `http://192.168.1.20:5000`. The device and Mac must be
+network IP, for example `http://192.168.1.20:5050`. The device and Mac must be
 on the same network.
 
 ### Run in Chrome
 
 ```bash
 flutter run -d chrome \
-  --dart-define=SOCKET_BASE_URL=http://localhost:5000
+  --dart-define=SOCKET_BASE_URL=http://localhost:5050
 ```
 
 If Flutter has not been added to `PATH`, replace `flutter` in these commands
@@ -275,10 +273,20 @@ memory, so restarting the backend clears rooms and messages. The app supports:
 - Inviting local dummy friends
 - Accepting or declining dummy invites
 - Sending real-time room chat messages
-- Starting a synchronized multiplayer placeholder once all players are ready
+- Playing synchronized High Card matches with backend-controlled card draws
+- Tracking shared scores and round history across all connected clients
+- Requesting a rematch after all human players accept
+- Using multiplayer placeholders for online War and Blackjack
 
 Friends and invites still use local dummy data. Authentication and multiplayer
-card-game logic are not implemented. No Firebase or database is used.
+War and Blackjack game logic are not implemented online. No Firebase or
+database is used.
+
+Online High Card rewards are saved to local progress:
+
+- Win: 100 coins and 50 XP
+- Loss: 25 coins and 20 XP
+- Draw: 40 coins and 30 XP
 
 ### Test With Multiple Clients
 
@@ -286,7 +294,9 @@ card-game logic are not implemented. No Firebase or database is used.
 2. Run CardVerse on two emulators, simulators, devices, or browser origins.
 3. Create a room on the first client.
 4. Join with the six-character code on the second client.
-5. Toggle ready, exchange chat messages, and start from the host client.
+5. Toggle ready and start from the host client.
+6. Draw synchronized cards, complete the configured rounds, and request a
+   rematch.
 
 ## Quality Checks
 
@@ -318,7 +328,7 @@ synchronization. The following systems are intentionally not included:
 - Firebase integration
 - Database persistence for server rooms and chat
 - Playable sessions for the remaining card games
-- Real-time card-game logic after a room starts
+- Online War and Blackjack gameplay
 
 Leaderboard opponents, friends, and invites use local sample data. Profile
 rewards, statistics, achievements, and match history are persistent local

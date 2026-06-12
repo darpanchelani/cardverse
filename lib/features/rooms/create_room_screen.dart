@@ -21,6 +21,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   bool _allowChat = true;
   int _turnTimeSeconds = 30;
   String _difficulty = 'Normal';
+  int _maxRounds = 5;
 
   String get _gameName => switch (_gameType) {
     'war' => 'War',
@@ -51,7 +52,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      'Choose a game and room rules. Everything stays local in this preview.',
+                      'Choose a game and room rules for your online table.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppColors.mutedText,
                       ),
@@ -132,6 +133,27 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                           setState(() => _turnTimeSeconds = value ?? 30),
                     ),
                     const SizedBox(height: 14),
+                    if (_gameType == 'high_card') ...[
+                      DropdownButtonFormField<int>(
+                        initialValue: _maxRounds,
+                        decoration: const InputDecoration(
+                          labelText: 'Rounds',
+                          prefixIcon: Icon(Icons.repeat_rounded),
+                        ),
+                        dropdownColor: AppColors.cardGreen,
+                        items: const [3, 5, 10]
+                            .map(
+                              (rounds) => DropdownMenuItem(
+                                value: rounds,
+                                child: Text('$rounds rounds'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _maxRounds = value ?? 5),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     DropdownButtonFormField<String>(
                       initialValue: _difficulty,
                       decoration: const InputDecoration(
@@ -198,7 +220,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         'difficulty': _difficulty,
         'allowSpectators': _roomType == 'public',
         'autoStart': false,
-        'roundsLimit': 10,
+        'maxRounds': _gameType == 'high_card' ? _maxRounds : 5,
       },
     );
     if (!mounted) return;

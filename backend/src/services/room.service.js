@@ -38,9 +38,6 @@ class RoomService {
     const code = this._code(roomCode);
     const room = this.getRoom(code);
     if (!room) throw new Error("Room not found");
-    if (![ROOM_STATUSES.WAITING, ROOM_STATUSES.READY].includes(room.status)) {
-      throw new Error("Room is already playing");
-    }
     const existing = room.players.find((item) => item.id === player.id);
     if (existing) {
       Object.assign(existing, {
@@ -48,6 +45,9 @@ class RoomService {
         connectionStatus: "connected",
       });
       return { room, joined: false };
+    }
+    if (![ROOM_STATUSES.WAITING, ROOM_STATUSES.READY].includes(room.status)) {
+      throw new Error("Room is already playing");
     }
     if (room.players.length >= room.maxPlayers) throw new Error("Room is full");
     player.seatIndex = this._firstEmptySeat(room);
@@ -142,6 +142,9 @@ class RoomService {
   canStartGame(roomCode, playerId) {
     const room = this._requiredRoom(roomCode);
     this._assertHost(room, playerId);
+    if (room.status === ROOM_STATUSES.PLAYING) {
+      throw new Error("Game already started");
+    }
     if (room.players.length < 2) {
       throw new Error("At least two players are required");
     }
@@ -167,6 +170,18 @@ class RoomService {
       }
     }
     return updates;
+  }
+
+  markPlayerDisconnected(playerId) {
+    const rooms = [];
+    for (const room of this.rooms.values()) {
+      const player = room.players.find((item) => item.id === playerId);
+      if (!player) continue;
+      player.connectionStatus = "disconnected";
+      player.socketId = null;
+      rooms.push(room);
+    }
+    return rooms;
   }
 
   cleanupEmptyRooms() {

@@ -5,7 +5,7 @@ const { createApp } = require("./src/app");
 const { createSocketServer } = require("./src/socket");
 const logger = require("./src/utils/logger");
 
-const port = Number(process.env.PORT) || 5000;
+const port = Number(process.env.PORT) || 5050;
 const app = createApp();
 const server = http.createServer(app);
 

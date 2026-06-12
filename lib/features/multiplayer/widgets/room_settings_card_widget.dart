@@ -11,6 +11,7 @@ class RoomSettingsCardWidget extends StatelessWidget {
     final timer = settings['turnTimeSeconds'];
     final values = [
       ('Turn timer', timer == 0 || timer == null ? 'No timer' : '${timer}s'),
+      if (settings['maxRounds'] != null) ('Rounds', '${settings['maxRounds']}'),
       ('Difficulty', '${settings['difficulty'] ?? 'Normal'}'),
       (
         'Spectators',

@@ -3,7 +3,11 @@ const http = require("node:http");
 const { after, before, beforeEach, test } = require("node:test");
 const { io: createClient } = require("socket.io-client");
 const { createApp } = require("../src/app");
-const { createSocketServer, roomService } = require("../src/socket");
+const {
+  createSocketServer,
+  roomService,
+  highCardService,
+} = require("../src/socket");
 
 let server;
 let baseUrl;
@@ -19,6 +23,7 @@ before(async () => {
 
 beforeEach(() => {
   roomService.rooms.clear();
+  highCardService.activeHighCardGames.clear();
 });
 
 after(async () => {
@@ -134,6 +139,103 @@ test("backend rejects invalid room actions", async () => {
     message: "   ",
   });
   assert.equal(emptyChat.message, "Message cannot be empty");
+});
+
+test("online High Card synchronizes rounds, match result, and rematch", async () => {
+  const host = await connectUser("high_card_host", "High Host");
+  const guest = await connectUser("high_card_guest", "High Guest");
+  const created = await emitAck(host, "room:create", {
+    gameType: "high_card",
+    maxPlayers: 2,
+    isPrivate: true,
+    allowBots: true,
+    allowChat: true,
+    settings: { maxRounds: 3 },
+  });
+  const roomCode = created.room.roomCode;
+  await emitAck(guest, "room:join", { roomCode });
+  await emitAck(host, "room:toggle_ready", { roomCode });
+  await emitAck(guest, "room:toggle_ready", { roomCode });
+
+  const initialStatePromise = once(host, "high_card:state");
+  const started = await emitAck(host, "room:start_game", { roomCode });
+  assert.equal(started.success, true);
+  const initialState = await initialStatePromise;
+  assert.equal(initialState.status, "playing");
+  assert.equal(initialState.currentRound, 1);
+  assert.equal(initialState.maxRounds, 3);
+  assert.equal("deck" in initialState, false);
+
+  const loaded = await emitAck(guest, "high_card:init", { roomCode });
+  assert.equal(loaded.game.players.length, 2);
+  assert.equal("deck" in loaded.game, false);
+
+  for (let round = 1; round <= 3; round += 1) {
+    const resultPromise = once(guest, "high_card:round_result");
+    const statePromise = onceWhere(
+      guest,
+      "high_card:state",
+      (state) => state.currentRound === round && state.roundResult != null,
+    );
+    const draw = await emitAck(host, "high_card:draw", { roomCode });
+    assert.equal(draw.success, true);
+    const result = await resultPromise;
+    const state = await statePromise;
+    assert.equal(result.roundNumber, round);
+    assert.equal(Object.keys(result.cards).length, 2);
+    assert.equal("deck" in state, false);
+
+    const duplicate = await emitAck(guest, "high_card:draw", { roomCode });
+    assert.equal(duplicate.success, false);
+
+    if (round < 3) {
+      const next = await emitAck(guest, "high_card:next_round", { roomCode });
+      assert.equal(next.game.currentRound, round + 1);
+      assert.equal(next.game.status, "playing");
+    } else {
+      assert.equal(state.status, "match_over");
+      assert.ok(state.matchWinner);
+    }
+  }
+
+  const requested = await emitAck(host, "high_card:rematch_request", {
+    roomCode,
+  });
+  assert.deepEqual(requested.game.rematchRequests, ["high_card_host"]);
+
+  const rematchPromise = once(guest, "high_card:rematch_started");
+  const accepted = await emitAck(guest, "high_card:rematch_accept", {
+    roomCode,
+  });
+  assert.equal(accepted.game.status, "playing");
+  const rematch = await rematchPromise;
+  assert.equal(rematch.currentRound, 1);
+  assert.equal(rematch.roundHistory.length, 0);
+  assert.deepEqual(rematch.scores, {
+    high_card_host: 0,
+    high_card_guest: 0,
+  });
+});
+
+test("High Card bot participates and full deck stays server-side", async () => {
+  const host = await connectUser("bot_host", "Bot Host");
+  const created = await emitAck(host, "room:create", {
+    gameType: "high_card",
+    maxPlayers: 2,
+    isPrivate: true,
+    allowBots: true,
+    allowChat: false,
+    settings: { maxRounds: 3 },
+  });
+  const roomCode = created.room.roomCode;
+  await emitAck(host, "room:toggle_ready", { roomCode });
+  await emitAck(host, "room:add_bot", { roomCode });
+  await emitAck(host, "room:start_game", { roomCode });
+
+  const draw = await emitAck(host, "high_card:draw", { roomCode });
+  assert.equal(Object.keys(draw.game.currentCards).length, 2);
+  assert.equal("deck" in draw.game, false);
+  assert.equal(highCardService.getGame(roomCode).deck.length, 50);
 });
 
 async function connectUser(userId, username) {

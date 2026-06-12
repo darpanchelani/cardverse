@@ -73,6 +73,7 @@ class LeaderboardService {
   ) {
     final multiplier = switch (gameType) {
       'high_card' => 0.45,
+      'high_card_online' => 0.2,
       'war' => 0.3,
       'blackjack' => 0.25,
       _ => 1.0,
