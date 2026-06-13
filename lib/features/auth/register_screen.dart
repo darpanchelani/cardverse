@@ -1,10 +1,8 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
-import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:cardverse/core/widgets/custom_text_field.dart';
-import 'package:cardverse/features/auth/local_auth_service.dart';
-import 'package:cardverse/features/auth/local_account_model.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
@@ -56,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your account is saved locally on this device.',
+                    'Create a cloud account for online progress and friends.',
                     style: Theme.of(
                       context,
                     ).textTheme.bodyLarge?.copyWith(color: AppColors.mutedText),
@@ -150,33 +148,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final storage = await LocalStorageService.create();
-    late final LocalAccountModel account;
-    try {
-      account = await LocalAuthService(storage).register(
-        fullName: fullName,
-        username: username,
-        email: email,
-        password: password,
-      );
-    } on StateError catch (error) {
-      if (!mounted) return;
+    final auth = AuthScope.of(context);
+    final success = await auth.register(
+      username: username,
+      email: email,
+      password: password,
+    );
+    if (!mounted) return;
+    if (!success) {
       setState(() {
         _isLoading = false;
-        _errorMessage = error.message;
+        _errorMessage = auth.errorMessage;
       });
       return;
     }
-    if (!mounted) return;
     final progress = ProgressScope.of(context);
     await progress.switchAccount(
-      accountId: account.id,
-      username: account.username,
+      accountId: auth.user!.id,
+      username: auth.user!.username,
     );
     if (!mounted) return;
-    MultiplayerScope.of(context).connection.updateIdentity(
-      username: account.username,
-      level: progress.profile.level,
+    MultiplayerScope.of(context).updateIdentity(
+      userId: auth.user!.id,
+      username: auth.user!.username,
+      level: auth.user!.level,
+      avatar: auth.user!.avatar,
+      token: auth.token,
     );
     context.go(AppRoutes.home);
   }

@@ -8,6 +8,8 @@ import 'package:cardverse/features/history/match_history_screen.dart';
 import 'package:cardverse/features/home/home_screen.dart';
 import 'package:cardverse/features/leaderboard/leaderboard_screen.dart';
 import 'package:cardverse/features/multiplayer/screens/friends_screen.dart';
+import 'package:cardverse/features/friends/screens/friend_requests_screen.dart';
+import 'package:cardverse/features/friends/screens/user_search_screen.dart';
 import 'package:cardverse/features/multiplayer/screens/invites_screen.dart';
 import 'package:cardverse/features/multiplayer/screens/multiplayer_game_placeholder_screen.dart';
 import 'package:cardverse/features/multiplayer/screens/public_rooms_screen.dart';
@@ -37,6 +39,8 @@ abstract final class AppRoutes {
   static const joinRoom = '/join-room';
   static const publicRooms = '/public-rooms';
   static const friends = '/friends';
+  static const friendRequests = '/friend-requests';
+  static const userSearch = '/user-search';
   static const invites = '/invites';
   static const roomLobby = '/room-lobby';
   static const multiplayerPlaceholder = '/multiplayer-placeholder';
@@ -100,6 +104,14 @@ abstract final class AppRoutes {
       GoRoute(
         path: friends,
         builder: (context, state) => const FriendsScreen(),
+      ),
+      GoRoute(
+        path: friendRequests,
+        builder: (context, state) => const FriendRequestsScreen(),
+      ),
+      GoRoute(
+        path: userSearch,
+        builder: (context, state) => const UserSearchScreen(),
       ),
       GoRoute(
         path: invites,

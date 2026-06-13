@@ -4,6 +4,7 @@ import 'package:cardverse/features/multiplayer/war/models/war_battle_result_mode
 import 'package:cardverse/features/multiplayer/war/models/war_game_state_model.dart';
 import 'package:cardverse/features/multiplayer/war/services/socket_war_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
+import 'package:cardverse/features/history/services/match_history_api_service.dart';
 import 'package:flutter/foundation.dart';
 
 class WarMultiplayerController extends ChangeNotifier {
@@ -11,6 +12,7 @@ class WarMultiplayerController extends ChangeNotifier {
     required SocketWarService service,
     required this.currentUserId,
     this.progressController,
+    this.cloudMatchService,
   }) : _service = service {
     _service.listenWarEvents(
       onState: handleGameState,
@@ -25,7 +27,8 @@ class WarMultiplayerController extends ChangeNotifier {
 
   final SocketWarService _service;
   final ProgressController? progressController;
-  final String currentUserId;
+  final MatchHistoryApiService? cloudMatchService;
+  String currentUserId;
   final Set<String> _recordedMatches = {};
   String? _roomCode;
 
@@ -45,6 +48,11 @@ class WarMultiplayerController extends ChangeNotifier {
   bool get isMatchOver => gameState?.status == 'match_over';
   bool get hasRequestedRematch =>
       gameState?.rematchRequests.contains(currentUserId) ?? false;
+
+  void updateIdentity(String userId) {
+    currentUserId = userId;
+    clear();
+  }
 
   Future<bool> connectAndLoadGame(String roomCode) async {
     if (!isConnected) {
@@ -241,6 +249,35 @@ class WarMultiplayerController extends ChangeNotifier {
       'loss' => (35, 25),
       _ => (60, 40),
     };
+    try {
+      await cloudMatchService?.saveOnlineMatch({
+        'matchKey': recordId,
+        'gameType': 'war_online',
+        'gameName': 'Online War',
+        'mode': 'online',
+        'roomCode': state.roomCode,
+        'winnerId': state.matchWinnerId,
+        'players': state.players
+            .map(
+              (player) => {
+                if (!player.isBot) 'userId': player.id,
+                'username': player.username,
+                'score': state.scores[player.id] ?? 0,
+                'result': state.matchWinnerId == null
+                    ? 'draw'
+                    : state.matchWinnerId == player.id
+                    ? 'win'
+                    : 'loss',
+              },
+            )
+            .toList(),
+        'roundHistory': state.battleHistory
+            .map((battle) => battle.toJson())
+            .toList(),
+      });
+    } catch (_) {
+      // Local progress remains the offline fallback when cloud sync fails.
+    }
     await progress.recordGameResult(
       recordId: recordId,
       gameType: 'war_online',

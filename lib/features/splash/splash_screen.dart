@@ -4,6 +4,7 @@ import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/constants/app_strings.dart';
 import 'package:cardverse/core/storage/local_storage_service.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -40,7 +41,14 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted || !_minimumDisplayElapsed || _hasSeenOnboarding == null) {
       return;
     }
-    context.go(_hasSeenOnboarding! ? AppRoutes.login : AppRoutes.onboarding);
+    if (!_hasSeenOnboarding!) {
+      context.go(AppRoutes.onboarding);
+      return;
+    }
+    final auth = AuthScope.of(context);
+    context.go(
+      auth.isAuthenticated || auth.isGuest ? AppRoutes.home : AppRoutes.login,
+    );
   }
 
   @override

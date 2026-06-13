@@ -1,0 +1,15 @@
+abstract final class ApiEndpoints {
+  static const register = '/auth/register';
+  static const login = '/auth/login';
+  static const authMe = '/auth/me';
+  static const logout = '/auth/logout';
+  static const usersMe = '/users/me';
+  static const userSearch = '/users/search';
+  static const friends = '/friends';
+  static const friendRequests = '/friends/requests';
+  static const matches = '/matches';
+  static const myMatches = '/matches/me';
+  static const leaderboard = '/leaderboard';
+  static const myLeaderboard = '/leaderboard/me';
+  static const achievements = '/achievements/me';
+}

@@ -10,4 +10,9 @@ abstract final class AppConfig {
     'SOCKET_BASE_URL',
     defaultValue: 'http://localhost:5050',
   );
+
+  static const apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: '$socketBaseUrl/api',
+  );
 }

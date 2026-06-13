@@ -1,5 +1,6 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/app/theme.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +10,12 @@ class CardVerseApp extends StatelessWidget {
     super.key,
     this.progressController,
     this.multiplayerControllers,
+    this.authController,
   });
 
   final ProgressController? progressController;
   final MultiplayerControllers? multiplayerControllers;
+  final AuthController? authController;
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +38,12 @@ class CardVerseApp extends StatelessWidget {
       controllers: multiplayer,
       child: app,
     );
-    return controller == null
+    final progressApp = controller == null
         ? multiplayerApp
         : ProgressScope(controller: controller, child: multiplayerApp);
+    return authController == null
+        ? progressApp
+        : AuthScope(controller: authController!, child: progressApp);
   }
 }
 

@@ -5,6 +5,7 @@ function createPlayer(payload, socketId, overrides = {}) {
     username: payload.username,
     avatar: payload.avatar || "default",
     level: Number(payload.level) || 1,
+    isGuest: payload.isGuest !== false,
     isHost: false,
     isReady: false,
     isBot: false,

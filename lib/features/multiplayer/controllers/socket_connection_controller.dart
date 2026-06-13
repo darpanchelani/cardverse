@@ -5,23 +5,31 @@ import 'package:flutter/foundation.dart';
 class SocketConnectionController extends ChangeNotifier {
   SocketConnectionController({
     required SocketService socketService,
-    required this.userId,
+    required String userId,
     required String username,
-    this.avatar = 'default',
+    String avatar = 'default',
     int level = 1,
+    String? token,
   }) : _socketService = socketService,
+       _userId = userId,
        _username = username,
+       _avatar = avatar,
+       _token = token,
        _level = level {
     _socketService.addListener(_syncState);
     _syncState();
   }
 
   final SocketService _socketService;
-  final String userId;
-  final String avatar;
+  String _userId;
+  String _avatar;
+  String? _token;
   String _username;
   int _level;
 
+  String get userId => _userId;
+  String get avatar => _avatar;
+  String? get token => _token;
   String get username => _username;
   int get level => _level;
 
@@ -38,6 +46,7 @@ class SocketConnectionController extends ChangeNotifier {
         username: username,
         avatar: avatar,
         level: level,
+        token: token,
       );
     } catch (_) {
       _syncState();
@@ -46,11 +55,25 @@ class SocketConnectionController extends ChangeNotifier {
 
   void disconnect() => _socketService.disconnect();
 
-  void updateIdentity({required String username, required int level}) {
-    final changed = _username != username || _level != level;
+  void updateIdentity({
+    required String userId,
+    required String username,
+    required int level,
+    String avatar = 'default',
+    String? token,
+  }) {
+    final changed =
+        _userId != userId ||
+        _username != username ||
+        _level != level ||
+        _avatar != avatar ||
+        _token != token;
+    _userId = userId;
     _username = username;
     _level = level;
-    if (changed && isConnected) disconnect();
+    _avatar = avatar;
+    _token = token;
+    if (changed) _socketService.resetConnection();
     notifyListeners();
   }
 

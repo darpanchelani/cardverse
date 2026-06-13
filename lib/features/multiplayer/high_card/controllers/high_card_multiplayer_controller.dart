@@ -4,6 +4,7 @@ import 'package:cardverse/features/multiplayer/high_card/models/high_card_game_s
 import 'package:cardverse/features/multiplayer/high_card/models/high_card_round_result_model.dart';
 import 'package:cardverse/features/multiplayer/high_card/services/socket_high_card_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
+import 'package:cardverse/features/history/services/match_history_api_service.dart';
 import 'package:flutter/foundation.dart';
 
 class HighCardMultiplayerController extends ChangeNotifier {
@@ -11,6 +12,7 @@ class HighCardMultiplayerController extends ChangeNotifier {
     required SocketHighCardService service,
     required this.currentUserId,
     this.progressController,
+    this.cloudMatchService,
   }) : _service = service {
     _service.listenHighCardEvents(
       onState: handleGameState,
@@ -24,7 +26,8 @@ class HighCardMultiplayerController extends ChangeNotifier {
 
   final SocketHighCardService _service;
   final ProgressController? progressController;
-  final String currentUserId;
+  final MatchHistoryApiService? cloudMatchService;
+  String currentUserId;
   final Set<String> _recordedMatches = {};
   String? _roomCode;
 
@@ -42,6 +45,11 @@ class HighCardMultiplayerController extends ChangeNotifier {
   bool get isMatchOver => gameState?.status == 'match_over';
   bool get hasRequestedRematch =>
       gameState?.rematchRequests.contains(currentUserId) ?? false;
+
+  void updateIdentity(String userId) {
+    currentUserId = userId;
+    clear();
+  }
 
   Future<bool> connectAndLoadGame(String roomCode) async {
     if (!isConnected) {
@@ -241,6 +249,35 @@ class HighCardMultiplayerController extends ChangeNotifier {
       'loss' => (25, 20),
       _ => (40, 30),
     };
+    try {
+      await cloudMatchService?.saveOnlineMatch({
+        'matchKey': recordId,
+        'gameType': 'high_card_online',
+        'gameName': 'Online High Card',
+        'mode': 'online',
+        'roomCode': state.roomCode,
+        'winnerId': state.matchWinnerId,
+        'players': state.players
+            .map(
+              (player) => {
+                if (!player.isBot) 'userId': player.id,
+                'username': player.username,
+                'score': state.scores[player.id] ?? 0,
+                'result': state.matchWinnerId == null
+                    ? 'draw'
+                    : state.matchWinnerId == player.id
+                    ? 'win'
+                    : 'loss',
+              },
+            )
+            .toList(),
+        'roundHistory': state.roundHistory
+            .map((round) => round.toJson())
+            .toList(),
+      });
+    } catch (_) {
+      // Local progress remains the offline fallback when cloud sync fails.
+    }
     await progress.recordGameResult(
       recordId: recordId,
       gameType: 'high_card_online',

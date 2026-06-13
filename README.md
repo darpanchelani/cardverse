@@ -1,18 +1,19 @@
 # CardVerse
 
-CardVerse is a Flutter card games hub with offline games, persistent local
-progress, and real-time multiplayer room infrastructure. Players can compete
-against computer opponents, earn rewards, unlock achievements, review match
-history, and create synchronized Socket.IO rooms with live chat and ready
-states.
+CardVerse is a Flutter card games hub with offline games, account-based cloud
+progress, and real-time multiplayer. Players can compete against computer
+opponents or online players, earn rewards, build a friends list, review local
+and cloud match history, and join synchronized Socket.IO game rooms.
 
 ## Features
 
 - Branded splash screen and guided onboarding experience
 - Onboarding completion saved locally
-- Multiple validated local accounts, login, and guest access
-- Locally hashed passwords and persistent player identity
-- Profile logout with confirmation while preserving account progress
+- JWT registration, login, persistent sessions, logout, and guest access
+- Secure token storage with `flutter_secure_storage`
+- MongoDB cloud profiles, online match history, achievements, and statistics
+- Real user search, friend requests, friend removal, and presence
+- Global leaderboards for wins, XP, coins, and win rate
 - Responsive home dashboard with player progress summary
 - Computer game catalog with available and coming-soon titles
 - Playable High Card game against a computer opponent
@@ -32,20 +33,20 @@ states.
 - Per-game statistics for High Card, War, and Blackjack
 - Match history with game filters and clear-history controls
 - Eight unlockable achievements with one-time coin and XP rewards
-- Offline leaderboard with overall and per-game filters
+- Offline leaderboard plus authenticated global leaderboard
 - Automatic game-result recording with duplicate-save protection
 - Corrupt or missing local data fallback to safe defaults
 - Private and public room creation with game, timer, difficulty, chat, and bot settings
 - Validated six-character room codes with copy and join flows
 - Public room browser with live backend room data and game filters
-- Friends list with search, presence status, removal, and room invites
+- Cloud friends list with search, presence status, removal, and room invites
 - Local invitation inbox with accept and decline actions
 - Real-time multiplayer room lobby with synchronized player slots and ready states
 - Live room chat, typing indicators, and system messages through Socket.IO
 - Host-controlled bot simulation and synchronized start-game events
 - In-memory Node.js room, player, and chat services
 - Connection, reconnection, offline-state, and backend-error UI
-- Dummy friends and invitation data retained until account APIs are added
+- Guest mode retains local progress and offline play without an account
 - Profile reset with confirmation
 - Responsive game grid designed for mobile and wider displays
 - Reusable buttons, text fields, game cards, colors, and strings
@@ -81,8 +82,12 @@ Coming soon:
 - Material 3
 - `go_router` for navigation
 - `shared_preferences` for local JSON persistence
+- `dio` for backend APIs
+- `flutter_secure_storage` for JWT storage
 - Node.js and Express
 - Socket.IO and `socket_io_client`
+- MongoDB and Mongoose
+- JWT and bcrypt password hashing
 
 ## Prerequisites
 
@@ -93,6 +98,7 @@ Install the following before running the project:
 - Android Studio and Android SDK for Android development
 - Chrome for web development
 - Node.js 18 or newer and npm for multiplayer development
+- MongoDB Community Server or a compatible MongoDB connection string
 
 Verify your environment:
 
@@ -130,8 +136,19 @@ Open a separate Terminal window:
 ```bash
 cd /Users/darpanchelani/Downloads/Softotic/cardverse/backend
 npm install
+cp .env.example .env
 npm run dev
 ```
+
+Start MongoDB before the backend. With Homebrew:
+
+```bash
+brew services start mongodb-community
+```
+
+Set a long random `JWT_SECRET` and the correct `MONGO_URI` in
+`backend/.env`. The backend exits with a clear error when MongoDB cannot be
+reached.
 
 The server runs at `http://localhost:5050`. Verify it with:
 
@@ -229,8 +246,10 @@ lib/
     └── splash/
 ```
 
-The Node.js backend lives in `backend/` and contains Express routes, Socket.IO
-handlers, in-memory room/chat services, validators, and integration tests.
+The Node.js backend lives in `backend/` and contains REST authentication,
+profile, friends, match, achievement, and leaderboard modules. Socket.IO rooms
+and active games remain in memory, while account data and online results are
+stored in MongoDB.
 
 ## Navigation Flow
 
@@ -258,9 +277,10 @@ Splash
      -> Match History
 ```
 
-Registration saves local accounts on the device. Login accepts any saved email
-or username and verifies the password before opening the home screen. Guest
-access remains available as a separate action.
+Registration and login use the backend API. Passwords are hashed with bcrypt,
+and the returned JWT is stored in platform secure storage. Guest access remains
+available for offline play and can also use multiplayer rooms with a temporary
+identity.
 
 ## Local Progress
 
@@ -268,11 +288,9 @@ CardVerse stores profile data, game statistics, achievements, match history,
 Blackjack chips, leaderboard snapshots, and onboarding status on the device
 using `shared_preferences`. Structured records are encoded as JSON.
 
-Each saved account and the Guest profile has isolated coins, XP, game stats,
-achievements, match history, leaderboard data, and Blackjack chips.
-
-Local account credentials are device-only. Passwords are stored as SHA-256
-hashes, but this is not a replacement for backend authentication.
+Each authenticated account and the Guest profile has isolated local offline
+progress. Online results for authenticated players are also saved to MongoDB
+and update the cloud profile, achievements, and global leaderboard.
 
 Game rewards:
 
@@ -291,8 +309,8 @@ memory, so restarting the backend clears rooms and messages. The app supports:
 - Joining rooms by code
 - Browsing public rooms
 - Synchronized player slots, bots, and readiness across clients
-- Inviting local dummy friends
-- Accepting or declining dummy invites
+- Searching for real users and managing friend requests
+- Inviting authenticated friends through the existing room invite UI
 - Sending real-time room chat messages
 - Playing synchronized High Card matches with backend-controlled card draws
 - Tracking shared scores and round history across all connected clients
@@ -302,8 +320,10 @@ memory, so restarting the backend clears rooms and messages. The app supports:
 - Placing bets, hitting, standing, resolving payouts, and requesting rematches
 - Requesting a rematch after all human players accept
 
-Friends and invites still use local dummy data. Authentication remains
-device-local. No Firebase or database is used.
+Active rooms, chat, and game state remain in memory and are cleared when the
+backend restarts. User accounts, friends, online match records, cloud
+achievements, and leaderboard statistics persist in MongoDB. Firebase is not
+used.
 
 Online High Card rewards are saved to local progress:
 

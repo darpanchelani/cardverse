@@ -95,12 +95,15 @@ class SocketService extends ChangeNotifier {
     required String username,
     String avatar = 'default',
     int level = 1,
+    String? token,
   }) async {
     _userPayload = {
       'userId': userId,
       'username': username,
       'avatar': avatar,
       'level': level,
+      'isGuest': token == null,
+      'token': ?token,
     };
     if (isConnected && connectionState == SocketConnectionState.connected) {
       return;
@@ -126,17 +129,16 @@ class SocketService extends ChangeNotifier {
   }
 
   io.Socket _createSocket() {
-    final socket = io.io(
-      baseUrl,
-      io.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
-          .enableReconnection()
-          .setReconnectionAttempts(5)
-          .setReconnectionDelay(1000)
-          .setTimeout(5000)
-          .build(),
-    );
+    var options = io.OptionBuilder()
+        .setTransports(['websocket'])
+        .disableAutoConnect()
+        .enableReconnection()
+        .setReconnectionAttempts(5)
+        .setReconnectionDelay(1000)
+        .setTimeout(5000);
+    final token = _userPayload?['token'] as String?;
+    if (token != null) options = options.setAuth({'token': token});
+    final socket = io.io(baseUrl, options.build());
     socket.on('connect', (_) {
       socketId = socket.id;
       final payload = _userPayload;
@@ -173,6 +175,14 @@ class SocketService extends ChangeNotifier {
 
   void disconnect() {
     _socket?.disconnect();
+    _setState(SocketConnectionState.disconnected);
+  }
+
+  void resetConnection() {
+    _socket?.dispose();
+    _socket = null;
+    _connectionCompleter = null;
+    socketId = null;
     _setState(SocketConnectionState.disconnected);
   }
 

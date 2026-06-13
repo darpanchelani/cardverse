@@ -1,9 +1,8 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
-import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:cardverse/core/widgets/custom_text_field.dart';
-import 'package:cardverse/features/auth/local_auth_service.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
@@ -51,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to your locally saved CardVerse account.',
+                    'Sign in to your CardVerse cloud account.',
                     textAlign: TextAlign.center,
                     style: Theme.of(
                       context,
@@ -122,39 +121,41 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final storage = await LocalStorageService.create();
-    final account = await LocalAuthService(
-      storage,
-    ).login(email: email, password: password);
+    final auth = AuthScope.of(context);
+    final success = await auth.login(email: email, password: password);
     if (!mounted) return;
-    if (account == null) {
+    if (!success) {
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            'Account not found or password is incorrect. Create an account first.';
+        _errorMessage = auth.errorMessage;
       });
       return;
     }
-    await _applyIdentity(accountId: account.id, username: account.username);
+    await _applyIdentity(auth);
   }
 
   Future<void> _continueAsGuest() async {
-    final storage = await LocalStorageService.create();
-    await LocalAuthService(storage).continueAsGuest();
+    final auth = AuthScope.of(context);
+    await auth.continueAsGuest();
     if (!mounted) return;
-    await _applyIdentity(accountId: 'guest', username: 'Guest Player');
+    await _applyIdentity(auth);
   }
 
-  Future<void> _applyIdentity({
-    required String accountId,
-    required String username,
-  }) async {
+  Future<void> _applyIdentity(AuthController auth) async {
     final progress = ProgressScope.of(context);
-    await progress.switchAccount(accountId: accountId, username: username);
+    await progress.switchAccount(
+      accountId: auth.isAuthenticated ? auth.user!.id : 'guest',
+      username: auth.identityUsername,
+    );
     if (!mounted) return;
-    MultiplayerScope.of(context).connection.updateIdentity(
-      username: username,
-      level: progress.profile.level,
+    MultiplayerScope.of(context).updateIdentity(
+      userId: auth.isAuthenticated
+          ? auth.user!.id
+          : MultiplayerScope.of(context).connection.userId,
+      username: auth.identityUsername,
+      level: auth.isAuthenticated ? auth.identityLevel : progress.profile.level,
+      avatar: auth.identityAvatar,
+      token: auth.token,
     );
     context.go(AppRoutes.home);
   }

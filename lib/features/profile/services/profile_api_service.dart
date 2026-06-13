@@ -1,0 +1,22 @@
+import 'package:cardverse/core/network/api_client.dart';
+import 'package:cardverse/core/network/api_endpoints.dart';
+import 'package:cardverse/features/auth/models/auth_user_model.dart';
+
+class ProfileApiService {
+  ProfileApiService(this._api);
+
+  final ApiClient _api;
+
+  Future<AuthUserModel> update({String? username, String? avatar}) async {
+    final response = await _api.patch(
+      ApiEndpoints.usersMe,
+      data: {'username': ?username, 'avatar': ?avatar},
+    );
+    final data = Map<String, dynamic>.from(
+      response['data'] as Map? ?? const {},
+    );
+    return AuthUserModel.fromJson(
+      Map<String, dynamic>.from(data['user'] as Map? ?? const {}),
+    );
+  }
+}

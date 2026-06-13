@@ -1,8 +1,11 @@
+import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/multiplayer/models/friend_model.dart';
 import 'package:cardverse/features/multiplayer/widgets/friend_tile_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -24,11 +27,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Widget build(BuildContext context) {
     final controllers = MultiplayerScope.of(context);
     final friends = controllers.friends;
+    final auth = AuthScope.maybeOf(context);
     final room = controllers.room.currentRoom;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Friends'),
         actions: [
+          if (auth?.isAuthenticated == true)
+            IconButton(
+              tooltip: 'Friend requests',
+              onPressed: () => context.push(AppRoutes.friendRequests),
+              icon: const Icon(Icons.mark_email_unread_outlined),
+            ),
+          if (auth?.isAuthenticated == true)
+            IconButton(
+              tooltip: 'Find players',
+              onPressed: () => context.push(AppRoutes.userSearch),
+              icon: const Icon(Icons.person_search_rounded),
+            ),
           IconButton(
             tooltip: 'Refresh friends',
             onPressed: friends.refreshFriends,
@@ -46,6 +62,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 32),
               children: [
+                if (auth?.isAuthenticated != true) ...[
+                  const _GuestFriendsBanner(),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: _searchController,
                   onChanged: friends.searchFriends,
@@ -65,17 +85,19 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 else if (results.isEmpty)
                   _NoFriends(
                     query: _searchController.text,
-                    onSend: () async {
-                      final query = _searchController.text.trim();
-                      if (query.isEmpty) return;
-                      await friends.sendFriendRequest(query);
-                      if (!context.mounted) return;
-                      _showMessage(
-                        context,
-                        friends.actionMessage ?? 'Friend request sent.',
-                      );
-                      friends.consumeActionMessage();
-                    },
+                    onSend: auth?.isAuthenticated == true
+                        ? () async {
+                            final query = _searchController.text.trim();
+                            if (query.isEmpty) return;
+                            await friends.sendFriendRequest(query);
+                            if (!context.mounted) return;
+                            _showMessage(
+                              context,
+                              friends.actionMessage ?? 'Friend request sent.',
+                            );
+                            friends.consumeActionMessage();
+                          }
+                        : () => context.go(AppRoutes.login),
                   )
                 else ...[
                   if (online.isNotEmpty) ...[
@@ -144,6 +166,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+class _GuestFriendsBanner extends StatelessWidget {
+  const _GuestFriendsBanner();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: AppColors.gold.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.gold),
+    ),
+    child: const Text(
+      'Login to add real friends and invite them online.',
+      textAlign: TextAlign.center,
+    ),
+  );
 }
 
 class _SectionTitle extends StatelessWidget {

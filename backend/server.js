@@ -1,16 +1,26 @@
-require("dotenv").config();
-
 const http = require("http");
 const { createApp } = require("./src/app");
+const { connectDatabase } = require("./src/config/db");
+const { env, validateEnvironment } = require("./src/config/env");
 const { createSocketServer } = require("./src/socket");
 const logger = require("./src/utils/logger");
 
-const port = Number(process.env.PORT) || 5050;
-const app = createApp();
-const server = http.createServer(app);
+async function start() {
+  try {
+    validateEnvironment();
+    await connectDatabase();
+    const app = createApp();
+    const server = http.createServer(app);
+    createSocketServer(server);
+    server.listen(env.port, "0.0.0.0", () => {
+      logger.info(
+        `CardVerse backend listening on http://0.0.0.0:${env.port}`,
+      );
+    });
+  } catch (error) {
+    logger.error(`CardVerse backend could not start: ${error.message}`);
+    process.exitCode = 1;
+  }
+}
 
-createSocketServer(server);
-
-server.listen(port, "0.0.0.0", () => {
-  logger.info(`CardVerse backend listening on http://0.0.0.0:${port}`);
-});
+start();

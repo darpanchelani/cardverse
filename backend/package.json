@@ -2,7 +2,7 @@
   "name": "cardverse-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "In-memory Express and Socket.IO backend for CardVerse multiplayer rooms.",
+  "description": "Express, MongoDB, JWT, and Socket.IO backend for CardVerse.",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
@@ -10,9 +10,16 @@
     "test": "node --test"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.0",
+    "morgan": "^1.11.0",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {

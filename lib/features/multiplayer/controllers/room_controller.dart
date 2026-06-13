@@ -14,7 +14,7 @@ class RoomController extends ChangeNotifier {
   }
 
   final MultiplayerRoomService _service;
-  final String localUserId;
+  String localUserId;
   bool _isActing = false;
 
   RoomModel? currentRoom;
@@ -25,6 +25,11 @@ class RoomController extends ChangeNotifier {
   int gameStartRevision = 0;
 
   bool get isConnected => _service.isConnected;
+
+  void updateIdentity(String userId) {
+    localUserId = userId;
+    clearRoom();
+  }
 
   bool get isCurrentUserHost =>
       currentRoom?.players.any(

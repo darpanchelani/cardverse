@@ -12,13 +12,16 @@ class FriendModel {
   });
 
   factory FriendModel.fromJson(Map<String, dynamic> json) => FriendModel(
-    id: json['id'] as String? ?? '',
+    id: (json['id'] ?? json['_id'] ?? '').toString(),
     username: json['username'] as String? ?? 'Player',
     avatar: json['avatar'] as String? ?? 'default',
     isOnline: json['isOnline'] as bool? ?? false,
     status: json['status'] as String? ?? 'offline',
     level: (json['level'] as num?)?.toInt() ?? 1,
-    wins: (json['wins'] as num?)?.toInt() ?? 0,
+    wins:
+        (json['wins'] as num?)?.toInt() ??
+        (json['totalWins'] as num?)?.toInt() ??
+        0,
     coins: (json['coins'] as num?)?.toInt() ?? 0,
     lastSeenAt:
         DateTime.tryParse(json['lastSeenAt'] as String? ?? '') ??

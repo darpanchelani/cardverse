@@ -8,6 +8,7 @@ import 'package:cardverse/features/multiplayer/controllers/socket_connection_con
 import 'package:cardverse/core/network/socket_service.dart';
 import 'package:cardverse/features/multiplayer/services/dummy_chat_service.dart';
 import 'package:cardverse/features/multiplayer/services/dummy_friend_service.dart';
+import 'package:cardverse/features/multiplayer/services/multiplayer_friend_service.dart';
 import 'package:cardverse/features/multiplayer/services/dummy_room_service.dart';
 import 'package:cardverse/features/multiplayer/services/room_code_service.dart';
 import 'package:cardverse/features/multiplayer/services/socket_chat_service.dart';
@@ -19,6 +20,7 @@ import 'package:cardverse/features/multiplayer/war/services/socket_war_service.d
 import 'package:cardverse/features/multiplayer/blackjack/controllers/blackjack_multiplayer_controller.dart';
 import 'package:cardverse/features/multiplayer/blackjack/services/socket_blackjack_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
+import 'package:cardverse/features/history/services/match_history_api_service.dart';
 import 'package:flutter/widgets.dart';
 
 class MultiplayerControllers {
@@ -37,7 +39,10 @@ class MultiplayerControllers {
     String userId = 'guest_local_user',
     String username = 'Guest Player',
     int level = 1,
+    String? token,
     ProgressController? progressController,
+    MultiplayerFriendService? friendService,
+    MatchHistoryApiService? cloudMatchService,
   }) {
     final socket = SocketService();
     final connection = SocketConnectionController(
@@ -45,9 +50,10 @@ class MultiplayerControllers {
       userId: userId,
       username: username,
       level: level,
+      token: token,
     );
     final controllers = MultiplayerControllers(
-      friends: FriendsController(DummyFriendService()),
+      friends: FriendsController(friendService ?? DummyFriendService()),
       room: RoomController(
         SocketRoomService(socket, connection),
         localUserId: userId,
@@ -59,16 +65,19 @@ class MultiplayerControllers {
         service: SocketHighCardService(socket),
         currentUserId: userId,
         progressController: progressController,
+        cloudMatchService: cloudMatchService,
       ),
       war: WarMultiplayerController(
         service: SocketWarService(socket),
         currentUserId: userId,
         progressController: progressController,
+        cloudMatchService: cloudMatchService,
       ),
       blackjack: BlackjackMultiplayerController(
         service: SocketBlackjackService(socket),
         currentUserId: userId,
         progressController: progressController,
+        cloudMatchService: cloudMatchService,
       ),
     );
     unawaited(controllers.friends.loadFriends());
@@ -87,6 +96,27 @@ class MultiplayerControllers {
   final HighCardMultiplayerController highCard;
   final WarMultiplayerController war;
   final BlackjackMultiplayerController blackjack;
+
+  void updateIdentity({
+    required String userId,
+    required String username,
+    required int level,
+    String avatar = 'default',
+    String? token,
+  }) {
+    chat.clearMessages();
+    room.updateIdentity(userId);
+    highCard.updateIdentity(userId);
+    war.updateIdentity(userId);
+    blackjack.updateIdentity(userId);
+    connection.updateIdentity(
+      userId: userId,
+      username: username,
+      level: level,
+      avatar: avatar,
+      token: token,
+    );
+  }
 
   factory MultiplayerControllers.dummy() {
     final socket = SocketService();

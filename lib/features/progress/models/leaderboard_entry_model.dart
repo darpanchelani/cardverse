@@ -15,7 +15,10 @@ class LeaderboardEntryModel {
     return LeaderboardEntryModel(
       username: json['username'] as String? ?? 'Player',
       gameType: json['gameType'] as String? ?? 'overall',
-      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      wins:
+          (json['wins'] as num?)?.toInt() ??
+          (json['totalWins'] as num?)?.toInt() ??
+          0,
       totalGames: (json['totalGames'] as num?)?.toInt() ?? 0,
       winRate: (json['winRate'] as num?)?.toDouble() ?? 0,
       coins: (json['coins'] as num?)?.toInt() ?? 0,

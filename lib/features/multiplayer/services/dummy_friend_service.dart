@@ -1,13 +1,16 @@
 import 'package:cardverse/features/multiplayer/models/friend_model.dart';
+import 'package:cardverse/features/multiplayer/services/multiplayer_friend_service.dart';
 
-class DummyFriendService {
+class DummyFriendService implements MultiplayerFriendService {
   DummyFriendService() : _friends = _buildFriends();
 
   // TODO: Replace with the backend friend API in a later phase.
   final List<FriendModel> _friends;
 
+  @override
   Future<List<FriendModel>> getFriends() async => List.of(_friends);
 
+  @override
   Future<List<FriendModel>> searchFriends(String query) async {
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) return getFriends();
@@ -16,8 +19,10 @@ class DummyFriendService {
         .toList();
   }
 
+  @override
   Future<void> sendFriendRequest(String username) async {}
 
+  @override
   Future<void> removeFriend(String friendId) async {
     _friends.removeWhere((friend) => friend.id == friendId);
   }

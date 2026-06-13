@@ -2,7 +2,7 @@ import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/utils/number_format_utils.dart';
-import 'package:cardverse/features/auth/local_auth_service.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:cardverse/features/progress/widgets/achievement_badge_widget.dart';
@@ -17,6 +17,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = ProgressScope.of(context);
+    final auth = AuthScope.maybeOf(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -39,25 +40,54 @@ class ProfileScreen extends StatelessWidget {
               );
             }
             final profile = controller.profile;
+            final cloud = auth?.user;
             final stats = [
-              ('Level', '${profile.level}', Icons.military_tech_outlined),
-              ('XP', '${profile.xp}', Icons.auto_awesome_outlined),
-              ('Coins', '${profile.coins}', Icons.monetization_on_outlined),
-              ('Games', '${profile.totalGames}', Icons.style_outlined),
-              ('Wins', '${profile.totalWins}', Icons.emoji_events_outlined),
-              ('Losses', '${profile.totalLosses}', Icons.close_rounded),
-              ('Draws', '${profile.totalDraws}', Icons.sync_rounded),
+              (
+                'Level',
+                '${cloud?.level ?? profile.level}',
+                Icons.military_tech_outlined,
+              ),
+              ('XP', '${cloud?.xp ?? profile.xp}', Icons.auto_awesome_outlined),
+              (
+                'Coins',
+                '${cloud?.coins ?? profile.coins}',
+                Icons.monetization_on_outlined,
+              ),
+              (
+                'Games',
+                '${cloud?.totalGames ?? profile.totalGames}',
+                Icons.style_outlined,
+              ),
+              (
+                'Wins',
+                '${cloud?.totalWins ?? profile.totalWins}',
+                Icons.emoji_events_outlined,
+              ),
+              (
+                'Losses',
+                '${cloud?.totalLosses ?? profile.totalLosses}',
+                Icons.close_rounded,
+              ),
+              (
+                'Draws',
+                '${cloud?.totalDraws ?? profile.totalDraws}',
+                Icons.sync_rounded,
+              ),
               (
                 'Win Rate',
-                NumberFormatUtils.percentage(profile.winRate),
+                NumberFormatUtils.percentage(cloud?.winRate ?? profile.winRate),
                 Icons.donut_large_rounded,
               ),
               (
                 'Win Streak',
-                '${profile.currentStreak}',
+                '${cloud?.currentStreak ?? profile.currentStreak}',
                 Icons.local_fire_department_outlined,
               ),
-              ('Best Streak', '${profile.bestStreak}', Icons.bolt_rounded),
+              (
+                'Best Streak',
+                '${cloud?.bestStreak ?? profile.bestStreak}',
+                Icons.bolt_rounded,
+              ),
             ];
             final unlocked = controller.achievements
                 .where((item) => item.isUnlocked)
@@ -68,11 +98,13 @@ class ProfileScreen extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
               children: [
+                _CloudBanner(isAuthenticated: auth?.isAuthenticated ?? false),
+                const SizedBox(height: 20),
                 CircleAvatar(
                   radius: 52,
                   backgroundColor: AppColors.gold,
                   child: Text(
-                    _initials(profile.username),
+                    _initials(cloud?.username ?? profile.username),
                     style: const TextStyle(
                       color: AppColors.ink,
                       fontSize: 30,
@@ -83,13 +115,15 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  profile.username,
+                  cloud?.username ?? profile.username,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Favorite game: ${profile.favoriteGame}',
+                  cloud == null
+                      ? 'Favorite game: ${profile.favoriteGame}'
+                      : '${cloud.email} · Favorite game: ${cloud.favoriteGame}',
                   textAlign: TextAlign.center,
                   style: Theme.of(
                     context,
@@ -174,8 +208,23 @@ class ProfileScreen extends StatelessWidget {
                   label: const Text('View Achievements'),
                 ),
                 const SizedBox(height: 10),
+                if (auth?.isAuthenticated == true) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => _editProfile(context, auth!),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit Cloud Profile'),
+                  ),
+                  const SizedBox(height: 10),
+                ] else ...[
+                  FilledButton.icon(
+                    onPressed: () => context.go(AppRoutes.login),
+                    icon: const Icon(Icons.cloud_upload_outlined),
+                    label: const Text('Login to Save Online'),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 OutlinedButton.icon(
-                  onPressed: () => _confirmLogout(context),
+                  onPressed: () => _confirmLogout(context, auth),
                   icon: const Icon(Icons.logout_rounded),
                   label: const Text('Log Out'),
                   style: OutlinedButton.styleFrom(
@@ -226,7 +275,10 @@ class ProfileScreen extends StatelessWidget {
     if (confirmed == true) await controller.clearProgress();
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(
+    BuildContext context,
+    AuthController? auth,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -250,6 +302,7 @@ class ProfileScreen extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
 
     final multiplayer = MultiplayerScope.of(context);
+    final progress = ProgressScope.of(context);
     if (multiplayer.room.currentRoom != null &&
         multiplayer.connection.isConnected) {
       await multiplayer.room.leaveRoom();
@@ -261,10 +314,99 @@ class ProfileScreen extends StatelessWidget {
     multiplayer.room.clearRoom();
     multiplayer.connection.disconnect();
 
+    await auth?.logout();
     final storage = await LocalStorageService.create();
-    await LocalAuthService(storage).logout();
+    var guestId = await storage.getString(StorageKeys.multiplayerUserId);
+    guestId ??=
+        'guest_${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
+    await storage.saveString(StorageKeys.multiplayerUserId, guestId);
+    await progress.switchAccount(accountId: 'guest', username: 'Guest Player');
+    multiplayer.updateIdentity(
+      userId: guestId,
+      username: 'Guest Player',
+      level: progress.profile.level,
+    );
     if (context.mounted) context.go(AppRoutes.login);
   }
+
+  Future<void> _editProfile(BuildContext context, AuthController auth) async {
+    final username = TextEditingController(text: auth.user?.username);
+    final avatar = TextEditingController(text: auth.user?.avatar);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit cloud profile'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: username,
+              decoration: const InputDecoration(labelText: 'Username'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: avatar,
+              decoration: const InputDecoration(labelText: 'Avatar'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await auth.updateProfile(
+        username: username.text.trim(),
+        avatar: avatar.text.trim(),
+      );
+    }
+    username.dispose();
+    avatar.dispose();
+  }
+}
+
+class _CloudBanner extends StatelessWidget {
+  const _CloudBanner({required this.isAuthenticated});
+
+  final bool isAuthenticated;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: (isAuthenticated ? Colors.greenAccent : AppColors.gold).withValues(
+        alpha: 0.1,
+      ),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: isAuthenticated ? Colors.greenAccent : AppColors.gold,
+      ),
+    ),
+    child: Row(
+      children: [
+        Icon(
+          isAuthenticated ? Icons.cloud_done_outlined : Icons.cloud_off,
+          color: isAuthenticated ? Colors.greenAccent : AppColors.gold,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            isAuthenticated
+                ? 'Cloud profile active. Online matches sync automatically.'
+                : 'Guest mode: create an account to save online progress.',
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 String _initials(String name) {

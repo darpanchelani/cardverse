@@ -1,6 +1,9 @@
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 const { CLIENT_EVENTS, SERVER_EVENTS } = require("./constants/socket_events");
+const { env } = require("./config/env");
 const { createPlayer } = require("./models/player.model");
+const { User } = require("./modules/users/user.model");
 const { ChatService } = require("./services/chat.service");
 const { RoomService } = require("./services/room.service");
 const { HighCardService } = require("./games/high-card/high_card.service");
@@ -23,11 +26,59 @@ function createSocketServer(httpServer) {
     cors: { origin: true, methods: ["GET", "POST"], credentials: true },
   });
 
+  io.use(async (socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next();
+    try {
+      const payload = jwt.verify(token, env.jwtSecret);
+      const user = await User.findById(payload.sub);
+      if (!user) return next(new Error("Authenticated user not found"));
+      socket.data.authenticatedUser = user;
+      return next();
+    } catch (_) {
+      return next(new Error("Authentication token is invalid or expired"));
+    }
+  });
+
   io.on("connection", (socket) => {
     logger.info(`Socket connected: ${socket.id}`);
+    const authenticatedUser = socket.data.authenticatedUser;
+    if (authenticatedUser) {
+      socket.data.player = createPlayer(
+        {
+          userId: authenticatedUser.id,
+          username: authenticatedUser.username,
+          avatar: authenticatedUser.avatar,
+          level: authenticatedUser.level,
+          isGuest: false,
+        },
+        socket.id,
+      );
+      authenticatedUser.isOnline = true;
+      authenticatedUser.socketId = socket.id;
+      authenticatedUser.lastSeenAt = new Date();
+      authenticatedUser.save().catch((error) => {
+        logger.error(`Could not update socket presence: ${error.message}`);
+      });
+      socket.emit(
+        SERVER_EVENTS.CONNECTION_SUCCESS,
+        success(
+          { socketId: socket.id, player: socket.data.player },
+          "Connected to CardVerse",
+        ),
+      );
+    }
 
     socket.on(CLIENT_EVENTS.USER_CONNECT, (payload = {}, acknowledge) => {
       safely(socket, acknowledge, () => {
+        if (socket.data.authenticatedUser) {
+          const response = success(
+            { socketId: socket.id, player: socket.data.player },
+            "Connected to CardVerse",
+          );
+          socket.emit(SERVER_EVENTS.CONNECTION_SUCCESS, response);
+          return response;
+        }
         const validationError = validateUser(payload);
         if (validationError) throw new Error(validationError);
         socket.data.player = createPlayer(payload, socket.id);
@@ -574,6 +625,15 @@ function createSocketServer(httpServer) {
     socket.on("disconnect", () => {
       const player = socket.data.player;
       if (!player) return;
+      if (socket.data.authenticatedUser) {
+        User.findByIdAndUpdate(player.id, {
+          isOnline: false,
+          socketId: null,
+          lastSeenAt: new Date(),
+        }).catch((error) => {
+          logger.error(`Could not update disconnect presence: ${error.message}`);
+        });
+      }
       const rooms = roomService.markPlayerDisconnected(player.id);
       const games = highCardService.markDisconnected(player.id);
       const warGames = warService.markDisconnected(player.id);

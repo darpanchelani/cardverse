@@ -1,11 +1,11 @@
 import 'package:cardverse/features/multiplayer/models/friend_model.dart';
-import 'package:cardverse/features/multiplayer/services/dummy_friend_service.dart';
+import 'package:cardverse/features/multiplayer/services/multiplayer_friend_service.dart';
 import 'package:flutter/foundation.dart';
 
 class FriendsController extends ChangeNotifier {
   FriendsController(this._service);
 
-  final DummyFriendService _service;
+  final MultiplayerFriendService _service;
 
   List<FriendModel> friends = [];
   List<FriendModel> searchResults = [];

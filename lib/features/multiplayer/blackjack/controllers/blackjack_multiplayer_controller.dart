@@ -4,6 +4,7 @@ import 'package:cardverse/features/multiplayer/blackjack/models/blackjack_game_s
 import 'package:cardverse/features/multiplayer/blackjack/models/blackjack_round_result_model.dart';
 import 'package:cardverse/features/multiplayer/blackjack/services/socket_blackjack_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
+import 'package:cardverse/features/history/services/match_history_api_service.dart';
 import 'package:flutter/foundation.dart';
 
 class BlackjackMultiplayerController extends ChangeNotifier {
@@ -11,6 +12,7 @@ class BlackjackMultiplayerController extends ChangeNotifier {
     required SocketBlackjackService service,
     required this.currentUserId,
     this.progressController,
+    this.cloudMatchService,
   }) : _service = service {
     _service.listenBlackjackEvents(
       onState: handleGameState,
@@ -27,7 +29,8 @@ class BlackjackMultiplayerController extends ChangeNotifier {
 
   final SocketBlackjackService _service;
   final ProgressController? progressController;
-  final String currentUserId;
+  final MatchHistoryApiService? cloudMatchService;
+  String currentUserId;
   final Set<String> _recordedMatches = {};
   String? _roomCode;
 
@@ -51,6 +54,11 @@ class BlackjackMultiplayerController extends ChangeNotifier {
   bool get canAct =>
       gameState?.status == 'playing' &&
       gameState?.playerStatuses[currentUserId] == 'playing';
+
+  void updateIdentity(String userId) {
+    currentUserId = userId;
+    clear();
+  }
 
   Future<bool> connectAndLoadGame(String roomCode) async {
     if (!isConnected) {
@@ -285,6 +293,35 @@ class BlackjackMultiplayerController extends ChangeNotifier {
       'loss' => (50, 35),
       _ => (80, 50),
     };
+    try {
+      await cloudMatchService?.saveOnlineMatch({
+        'matchKey': recordId,
+        'gameType': 'blackjack_online',
+        'gameName': 'Online Blackjack',
+        'mode': 'online',
+        'roomCode': state.roomCode,
+        'winnerId': state.matchResults?.winnerId,
+        'players': state.players
+            .map(
+              (player) => {
+                if (!player.isBot) 'userId': player.id,
+                'username': player.username,
+                'score': state.playerChips[player.id] ?? 0,
+                'result': state.matchResults?.winnerId == null
+                    ? 'draw'
+                    : state.matchResults?.winnerId == player.id
+                    ? 'win'
+                    : 'loss',
+              },
+            )
+            .toList(),
+        'roundHistory': state.roundHistory
+            .map((round) => round.toJson())
+            .toList(),
+      });
+    } catch (_) {
+      // Local progress remains the offline fallback when cloud sync fails.
+    }
     await progress.recordGameResult(
       recordId: recordId,
       gameType: 'blackjack_online',

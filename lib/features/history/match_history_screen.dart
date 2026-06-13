@@ -1,5 +1,9 @@
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/network/api_client.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
+import 'package:cardverse/features/history/services/match_history_api_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
+import 'package:cardverse/features/progress/models/match_history_model.dart';
 import 'package:cardverse/features/progress/widgets/match_history_tile_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -12,17 +16,49 @@ class MatchHistoryScreen extends StatefulWidget {
 
 class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
   String _filter = 'all';
+  bool _showCloud = true;
+  bool _loadingCloud = false;
+  List<MatchHistoryModel> _cloudMatches = [];
+  String? _cloudError;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = AuthScope.maybeOf(context);
+    if (auth?.isAuthenticated != true) _showCloud = false;
+    if (_showCloud && _cloudMatches.isEmpty && !_loadingCloud) {
+      _loadCloud();
+    }
+  }
+
+  Future<void> _loadCloud() async {
+    final api = ApiClient.globalInstance;
+    final auth = AuthScope.maybeOf(context);
+    if (api == null || auth?.isAuthenticated != true) return;
+    setState(() {
+      _loadingCloud = true;
+      _cloudError = null;
+    });
+    try {
+      _cloudMatches = await MatchHistoryApiService(api, auth!).getMyMatches();
+    } catch (error) {
+      _cloudError = error.toString();
+    }
+    if (mounted) setState(() => _loadingCloud = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = ProgressScope.of(context);
+    final auth = AuthScope.maybeOf(context);
+    final isAuthenticated = auth?.isAuthenticated == true;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Match History'),
         actions: [
           IconButton(
             tooltip: 'Clear match history',
-            onPressed: controller.matchHistory.isEmpty
+            onPressed: _showCloud || controller.matchHistory.isEmpty
                 ? null
                 : () => _confirmClear(context, controller),
             icon: const Icon(Icons.delete_outline_rounded),
@@ -34,11 +70,38 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         child: AnimatedBuilder(
           animation: controller,
           builder: (context, child) {
-            final matches = controller.matchHistory
+            final source = _showCloud ? _cloudMatches : controller.matchHistory;
+            final matches = source
                 .where((match) => _filter == 'all' || match.gameType == _filter)
                 .toList();
             return Column(
               children: [
+                if (isAuthenticated)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    child: SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(
+                          value: true,
+                          label: Text('Cloud Online'),
+                          icon: Icon(Icons.cloud_outlined),
+                        ),
+                        ButtonSegment(
+                          value: false,
+                          label: Text('Local Offline'),
+                          icon: Icon(Icons.phone_android_rounded),
+                        ),
+                      ],
+                      selected: {_showCloud},
+                      onSelectionChanged: (value) {
+                        setState(() {
+                          _showCloud = value.first;
+                          _filter = 'all';
+                        });
+                        if (_showCloud) _loadCloud();
+                      },
+                    ),
+                  ),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
@@ -90,7 +153,15 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                   ),
                 ),
                 Expanded(
-                  child: matches.isEmpty
+                  child: _showCloud && _loadingCloud
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.gold,
+                          ),
+                        )
+                      : _showCloud && _cloudError != null
+                      ? _CloudError(message: _cloudError!, onRetry: _loadCloud)
+                      : matches.isEmpty
                       ? const _EmptyHistory()
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -136,6 +207,30 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     );
     if (confirmed == true) await controller.clearHistory();
   }
+}
+
+class _CloudError extends StatelessWidget {
+  const _CloudError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off_rounded, size: 54, color: AppColors.gold),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 14),
+          OutlinedButton(onPressed: onRetry, child: const Text('Try Again')),
+        ],
+      ),
+    ),
+  );
 }
 
 class _FilterChip extends StatelessWidget {
