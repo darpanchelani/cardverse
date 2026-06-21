@@ -23,6 +23,10 @@ import 'package:cardverse/features/progress/achievements_screen.dart';
 import 'package:cardverse/features/rooms/create_room_screen.dart';
 import 'package:cardverse/features/rooms/join_room_screen.dart';
 import 'package:cardverse/features/splash/splash_screen.dart';
+import 'package:cardverse/features/notifications/screens/notifications_screen.dart';
+import 'package:cardverse/features/customization/screens/customization_screen.dart';
+import 'package:cardverse/features/settings/screens/account_settings_screen.dart';
+import 'package:cardverse/features/settings/screens/app_settings_screen.dart';
 import 'package:go_router/go_router.dart';
 
 abstract final class AppRoutes {
@@ -51,6 +55,10 @@ abstract final class AppRoutes {
   static const profile = '/profile';
   static const matchHistory = '/match-history';
   static const achievements = '/achievements';
+  static const notifications = '/notifications';
+  static const customization = '/customization';
+  static const accountSettings = '/account-settings';
+  static const appSettings = '/app-settings';
 
   static final router = GoRouter(
     initialLocation: splash,
@@ -161,6 +169,22 @@ abstract final class AppRoutes {
       GoRoute(
         path: achievements,
         builder: (context, state) => const AchievementsScreen(),
+      ),
+      GoRoute(
+        path: notifications,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: customization,
+        builder: (context, state) => const CustomizationScreen(),
+      ),
+      GoRoute(
+        path: accountSettings,
+        builder: (context, state) => const AccountSettingsScreen(),
+      ),
+      GoRoute(
+        path: appSettings,
+        builder: (context, state) => const AppSettingsScreen(),
       ),
     ],
   );

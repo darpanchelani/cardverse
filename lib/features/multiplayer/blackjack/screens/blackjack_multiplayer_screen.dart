@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/network/socket_connection_state.dart';
 import 'package:cardverse/features/multiplayer/blackjack/widgets/blackjack_multiplayer_action_buttons_widget.dart';
@@ -85,6 +86,9 @@ class _BlackjackMultiplayerScreenState extends State<BlackjackMultiplayerScreen>
             ? null
             : currentPlayers.first;
         return Scaffold(
+          backgroundColor: AppServicesScope.maybeOf(
+            context,
+          )?.customization.tableColor,
           appBar: AppBar(
             title: const Text('Online Blackjack'),
             actions: [

@@ -162,6 +162,11 @@ class AuthController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
   }
+
+  void replaceUser(AuthUserModel updatedUser) {
+    user = updatedUser;
+    notifyListeners();
+  }
 }
 
 class AuthScope extends InheritedNotifier<AuthController> {

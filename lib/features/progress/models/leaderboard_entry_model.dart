@@ -9,6 +9,7 @@ class LeaderboardEntryModel {
     required this.xp,
     required this.level,
     required this.updatedAt,
+    this.avatarFrame = 'default',
   });
 
   factory LeaderboardEntryModel.fromJson(Map<String, dynamic> json) {
@@ -27,6 +28,7 @@ class LeaderboardEntryModel {
       updatedAt:
           DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.now(),
+      avatarFrame: json['avatarFrame'] as String? ?? 'default',
     );
   }
 
@@ -39,6 +41,7 @@ class LeaderboardEntryModel {
   final int xp;
   final int level;
   final DateTime updatedAt;
+  final String avatarFrame;
 
   Map<String, dynamic> toJson() => {
     'username': username,
@@ -50,5 +53,6 @@ class LeaderboardEntryModel {
     'xp': xp,
     'level': level,
     'updatedAt': updatedAt.toIso8601String(),
+    'avatarFrame': avatarFrame,
   };
 }

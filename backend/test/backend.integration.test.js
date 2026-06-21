@@ -44,6 +44,17 @@ test("health endpoint reports backend availability", async () => {
   });
 });
 
+test("root and missing routes return production-safe JSON", async () => {
+  const root = await fetch(baseUrl);
+  assert.equal(root.status, 200);
+  assert.equal((await root.json()).message, "CardVerse API");
+  const missing = await fetch(`${baseUrl}/api/not-a-route`);
+  assert.equal(missing.status, 404);
+  const body = await missing.json();
+  assert.equal(body.success, false);
+  assert.deepEqual(body.errors, []);
+});
+
 test("two clients synchronize room, ready, bot, chat, and start events", async () => {
   const host = await connectUser("host_user", "Host Player");
   const guest = await connectUser("guest_user", "Guest Player");

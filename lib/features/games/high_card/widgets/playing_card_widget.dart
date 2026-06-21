@@ -1,6 +1,7 @@
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/features/games/models/playing_card_model.dart';
 import 'package:flutter/material.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 
 class PlayingCardWidget extends StatelessWidget {
   const PlayingCardWidget({
@@ -8,14 +9,20 @@ class PlayingCardWidget extends StatelessWidget {
     this.card,
     this.label,
     this.showBack = false,
+    this.cardTheme,
   });
 
   final PlayingCardModel? card;
   final String? label;
   final bool showBack;
+  final String? cardTheme;
 
   @override
   Widget build(BuildContext context) {
+    final selectedTheme =
+        cardTheme ??
+        AppServicesScope.maybeOf(context)?.customization.cardTheme ??
+        'classic';
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -31,8 +38,8 @@ class PlayingCardWidget extends StatelessWidget {
         AspectRatio(
           aspectRatio: 0.68,
           child: showBack || card == null
-              ? const _CardBack()
-              : _CardFront(card: card!),
+              ? _CardBack(theme: selectedTheme)
+              : _CardFront(card: card!, theme: selectedTheme),
         ),
       ],
     );
@@ -40,21 +47,33 @@ class PlayingCardWidget extends StatelessWidget {
 }
 
 class _CardFront extends StatelessWidget {
-  const _CardFront({required this.card});
+  const _CardFront({required this.card, required this.theme});
 
   final PlayingCardModel card;
+  final String theme;
 
   @override
   Widget build(BuildContext context) {
     final cardColor = card.colorType == CardColorType.red
-        ? const Color(0xFFC7353B)
-        : const Color(0xFF111A17);
+        ? (theme == 'minimal_dark'
+              ? const Color(0xFFFF7C82)
+              : const Color(0xFFC7353B))
+        : (theme == 'minimal_dark' ? AppColors.white : const Color(0xFF111A17));
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: theme == 'minimal_dark'
+            ? const Color(0xFF171A19)
+            : theme == 'desert_thar'
+            ? const Color(0xFFFFE8BE)
+            : AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.gold, width: 2),
+        border: Border.all(
+          color: theme == 'neon_night'
+              ? const Color(0xFF7184FF)
+              : AppColors.gold,
+          width: 2,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.28),
@@ -131,16 +150,24 @@ class _CardCorner extends StatelessWidget {
 }
 
 class _CardBack extends StatelessWidget {
-  const _CardBack();
+  const _CardBack({required this.theme});
+
+  final String theme;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.cardGreen, AppColors.inputGreen],
+          colors: switch (theme) {
+            'royal_gold' => const [Color(0xFF2F2410), Color(0xFF9A711F)],
+            'neon_night' => const [Color(0xFF080A1A), Color(0xFF3448C5)],
+            'desert_thar' => const [Color(0xFF56351D), Color(0xFFB7803C)],
+            'minimal_dark' => const [Color(0xFF080909), Color(0xFF303533)],
+            _ => const [AppColors.cardGreen, AppColors.inputGreen],
+          },
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.gold, width: 2),

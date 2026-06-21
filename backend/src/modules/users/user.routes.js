@@ -9,6 +9,7 @@ function createUserRouter() {
   router.use(authenticate);
   router.get("/me", controller.me);
   router.patch("/me", controller.update);
+  router.delete("/me", controller.remove);
   router.get("/search", controller.search);
   router.get("/:userId", controller.profile);
   return router;

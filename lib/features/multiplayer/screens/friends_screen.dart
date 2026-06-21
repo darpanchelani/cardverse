@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
@@ -148,12 +149,18 @@ class _FriendsScreenState extends State<FriendsScreen> {
       friend: friend,
       onInvite: canInvite && friend.status != 'offline'
           ? () async {
-              await controllers.invites.sendInvite(
-                friend,
-                controllers.room.currentRoom!,
+              final invites = AppServicesScope.maybeOf(context)?.invites;
+              final result = await invites?.sendInvite(
+                friend.id,
+                controllers.room.currentRoom!.roomCode,
               );
               if (context.mounted) {
-                _showMessage(context, 'Invite sent to ${friend.username}.');
+                _showMessage(
+                  context,
+                  result == null
+                      ? invites?.errorMessage ?? 'Login to invite friends.'
+                      : 'Invite sent to ${friend.username}.',
+                );
               }
             }
           : null,

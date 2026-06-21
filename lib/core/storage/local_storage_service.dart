@@ -13,6 +13,9 @@ abstract final class StorageKeys {
   static const localAccounts = 'local_accounts';
   static const activeAccountId = 'active_account_id';
   static const isGuestMode = 'is_guest_mode';
+  static const soundEnabled = 'sound_enabled';
+  static const vibrationEnabled = 'vibration_enabled';
+  static const notificationsEnabled = 'notifications_enabled';
 }
 
 class LocalStorageService {

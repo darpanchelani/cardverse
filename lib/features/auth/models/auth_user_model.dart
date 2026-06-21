@@ -17,6 +17,13 @@ class AuthUserModel {
     required this.isOnline,
     required this.lastSeenAt,
     required this.createdAt,
+    required this.avatarFrame,
+    required this.equippedCardTheme,
+    required this.equippedTableTheme,
+    required this.unlockedCardThemes,
+    required this.unlockedTableThemes,
+    required this.unlockedAvatarFrames,
+    required this.settings,
   });
 
   factory AuthUserModel.fromJson(Map<String, dynamic> json) => AuthUserModel(
@@ -40,6 +47,22 @@ class AuthUserModel {
         DateTime.now(),
     createdAt:
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+    avatarFrame: json['avatarFrame'] as String? ?? 'default',
+    equippedCardTheme: json['equippedCardTheme'] as String? ?? 'classic',
+    equippedTableTheme: json['equippedTableTheme'] as String? ?? 'green_felt',
+    unlockedCardThemes: _strings(json['unlockedCardThemes'], 'classic'),
+    unlockedTableThemes: _strings(json['unlockedTableThemes'], 'green_felt'),
+    unlockedAvatarFrames: _strings(json['unlockedAvatarFrames'], 'default'),
+    settings: Map<String, dynamic>.from(
+      json['settings'] as Map? ??
+          const {
+            'soundEnabled': true,
+            'vibrationEnabled': true,
+            'notificationsEnabled': true,
+            'privateProfile': false,
+            'showOnlineStatus': true,
+          },
+    ),
   );
 
   final String id;
@@ -59,6 +82,13 @@ class AuthUserModel {
   final bool isOnline;
   final DateTime lastSeenAt;
   final DateTime createdAt;
+  final String avatarFrame;
+  final String equippedCardTheme;
+  final String equippedTableTheme;
+  final List<String> unlockedCardThemes;
+  final List<String> unlockedTableThemes;
+  final List<String> unlockedAvatarFrames;
+  final Map<String, dynamic> settings;
 
   double get winRate => totalGames == 0 ? 0 : totalWins / totalGames * 100;
 
@@ -76,6 +106,13 @@ class AuthUserModel {
     int? bestStreak,
     String? favoriteGame,
     bool? isOnline,
+    String? avatarFrame,
+    String? equippedCardTheme,
+    String? equippedTableTheme,
+    List<String>? unlockedCardThemes,
+    List<String>? unlockedTableThemes,
+    List<String>? unlockedAvatarFrames,
+    Map<String, dynamic>? settings,
   }) => AuthUserModel(
     id: id,
     username: username ?? this.username,
@@ -94,5 +131,19 @@ class AuthUserModel {
     isOnline: isOnline ?? this.isOnline,
     lastSeenAt: lastSeenAt,
     createdAt: createdAt,
+    avatarFrame: avatarFrame ?? this.avatarFrame,
+    equippedCardTheme: equippedCardTheme ?? this.equippedCardTheme,
+    equippedTableTheme: equippedTableTheme ?? this.equippedTableTheme,
+    unlockedCardThemes: unlockedCardThemes ?? this.unlockedCardThemes,
+    unlockedTableThemes: unlockedTableThemes ?? this.unlockedTableThemes,
+    unlockedAvatarFrames: unlockedAvatarFrames ?? this.unlockedAvatarFrames,
+    settings: settings ?? this.settings,
   );
+
+  static List<String> _strings(dynamic value, String fallback) {
+    final values = (value as List<dynamic>? ?? const [])
+        .map((item) => item.toString())
+        .toList();
+    return values.isEmpty ? [fallback] : values;
+  }
 }

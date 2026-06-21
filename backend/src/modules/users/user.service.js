@@ -42,7 +42,7 @@ class UserService {
   async publicProfile(userId) {
     const user = await User.findById(userId)
       .select(
-        "username avatar level totalWins totalGames favoriteGame lastSeenAt isOnline",
+        "username avatar avatarFrame level totalWins totalGames favoriteGame lastSeenAt isOnline settings",
       )
       .lean();
     if (!user) {
@@ -50,13 +50,37 @@ class UserService {
       error.status = 404;
       throw error;
     }
+    if (user.settings?.privateProfile) {
+      return {
+        id: user._id.toString(),
+        username: user.username,
+        avatar: user.avatar,
+        avatarFrame: user.avatarFrame,
+        level: user.level,
+        privateProfile: true,
+      };
+    }
     return {
       ...user,
       id: user._id.toString(),
+      isOnline:
+        user.settings?.showOnlineStatus === false ? false : user.isOnline,
       winRate: user.totalGames
         ? (user.totalWins / user.totalGames) * 100
         : 0,
     };
+  }
+
+  async softDelete(user) {
+    const suffix = `${user.id}_${Date.now()}`;
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    user.isOnline = false;
+    user.socketId = null;
+    user.username = `deleted_${suffix}`.slice(0, 20);
+    user.email = `deleted_${suffix}@cardverse.invalid`;
+    user.friends = [];
+    await user.save();
   }
 }
 

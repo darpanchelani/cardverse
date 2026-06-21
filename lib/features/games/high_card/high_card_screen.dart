@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:cardverse/features/games/high_card/high_card_controller.dart';
@@ -43,6 +44,9 @@ class _HighCardScreenState extends State<HighCardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppServicesScope.maybeOf(
+        context,
+      )?.customization.tableColor,
       appBar: AppBar(
         leading: IconButton(
           tooltip: 'Back to game selection',

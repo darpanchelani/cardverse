@@ -1,8 +1,10 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cardverse/features/notifications/widgets/notification_badge_widget.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -47,6 +49,18 @@ class HomeScreen extends StatelessWidget {
         subtitle: 'Review your room invitations',
         icon: Icons.mail_outline_rounded,
         onTap: () => context.push(AppRoutes.invites),
+      ),
+      _HomeAction(
+        title: 'Customize',
+        subtitle: 'Cards, tables, and avatar frames',
+        icon: Icons.palette_outlined,
+        onTap: () => context.push(AppRoutes.customization),
+      ),
+      _HomeAction(
+        title: 'Settings',
+        subtitle: 'Account and app preferences',
+        icon: Icons.settings_outlined,
+        onTap: () => context.push(AppRoutes.accountSettings),
       ),
       _HomeAction(
         title: 'Match History',
@@ -118,11 +132,25 @@ class HomeScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Profile',
-                          onPressed: () => context.push(AppRoutes.profile),
-                          icon: const Icon(Icons.settings_outlined),
-                        ),
+                        if (AppServicesScope.maybeOf(context) != null)
+                          AnimatedBuilder(
+                            animation: AppServicesScope.of(
+                              context,
+                            ).notifications,
+                            builder: (context, _) => NotificationBadgeWidget(
+                              count: AppServicesScope.of(
+                                context,
+                              ).notifications.unreadCount,
+                              child: IconButton(
+                                tooltip: 'Notifications',
+                                onPressed: () =>
+                                    context.push(AppRoutes.notifications),
+                                icon: const Icon(
+                                  Icons.notifications_none_rounded,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

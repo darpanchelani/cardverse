@@ -4,6 +4,9 @@ const { User } = require("../users/user.model");
 const {
   AchievementsService,
 } = require("../achievements/achievements.service");
+const {
+  notificationsService,
+} = require("../notifications/notifications.service");
 
 class MatchesService {
   constructor() {
@@ -46,13 +49,31 @@ class MatchesService {
       user.xp += reward.xp;
       user.level = calculateLevel(user.xp);
       user.favoriteGame = payload.gameName;
-      await this.achievementsService.checkAndUnlock(
+      const unlocked = await this.achievementsService.checkAndUnlock(
         user,
         payload.gameType,
         result,
       );
       user.level = calculateLevel(user.xp);
       await user.save();
+      notificationsService.emitUserStats(user);
+      await notificationsService.createNotification(user.id, {
+        type: "match_result",
+        title: "Match Complete",
+        message:
+          result === "win"
+            ? `You won ${payload.gameName}`
+            : `${payload.gameName} match finished`,
+        data: { gameType: payload.gameType, roomCode: payload.roomCode, result },
+      });
+      for (const achievement of unlocked) {
+        await notificationsService.createNotification(user.id, {
+          type: "achievement_unlocked",
+          title: "Achievement Unlocked",
+          message: achievement.title,
+          data: { achievementId: achievement.id },
+        });
+      }
       rewardedPlayers.push(user);
     }
 

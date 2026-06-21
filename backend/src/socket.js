@@ -9,6 +9,10 @@ const { RoomService } = require("./services/room.service");
 const { HighCardService } = require("./games/high-card/high_card.service");
 const { WarService } = require("./games/war/war.service");
 const { BlackjackService } = require("./games/blackjack/blackjack.service");
+const { InvitesService } = require("./modules/invites/invites.service");
+const {
+  notificationsService,
+} = require("./modules/notifications/notifications.service");
 const logger = require("./utils/logger");
 const { failure, success } = require("./utils/response");
 const { validateUser } = require("./utils/validators");
@@ -19,12 +23,15 @@ roomService.setChatService(chatService);
 const highCardService = new HighCardService(roomService);
 const warService = new WarService(roomService);
 const blackjackService = new BlackjackService(roomService);
+const invitesService = new InvitesService(roomService);
 const disconnectTimers = new Map();
 
 function createSocketServer(httpServer) {
   const io = new Server(httpServer, {
     cors: { origin: true, methods: ["GET", "POST"], credentials: true },
   });
+  invitesService.setSocketServer(io);
+  notificationsService.setSocketServer(io);
 
   io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -44,6 +51,7 @@ function createSocketServer(httpServer) {
     logger.info(`Socket connected: ${socket.id}`);
     const authenticatedUser = socket.data.authenticatedUser;
     if (authenticatedUser) {
+      socket.join(`user:${authenticatedUser.id}`);
       socket.data.player = createPlayer(
         {
           userId: authenticatedUser.id,
@@ -622,6 +630,41 @@ function createSocketServer(httpServer) {
       emitTyping(socket, payload, false);
     });
 
+    socket.on(CLIENT_EVENTS.INVITE_SEND, (payload = {}, acknowledge) => {
+      safelyAsync(socket, acknowledge, async () => {
+        const user = requiredAuthenticatedUser(socket);
+        const invite = await invitesService.create(user.id, payload);
+        return success({ invite }, "Invite sent");
+      });
+    });
+
+    socket.on(CLIENT_EVENTS.INVITE_ACCEPT, (payload = {}, acknowledge) => {
+      safelyAsync(socket, acknowledge, async () => {
+        const user = requiredAuthenticatedUser(socket);
+        const invite = await invitesService.accept(payload.inviteId, user.id);
+        return success(
+          { invite, roomCode: invite.roomCode },
+          "Invite accepted",
+        );
+      });
+    });
+
+    socket.on(CLIENT_EVENTS.INVITE_DECLINE, (payload = {}, acknowledge) => {
+      safelyAsync(socket, acknowledge, async () => {
+        const user = requiredAuthenticatedUser(socket);
+        const invite = await invitesService.decline(payload.inviteId, user.id);
+        return success({ invite }, "Invite declined");
+      });
+    });
+
+    socket.on(CLIENT_EVENTS.INVITE_CANCEL, (payload = {}, acknowledge) => {
+      safelyAsync(socket, acknowledge, async () => {
+        const user = requiredAuthenticatedUser(socket);
+        const invite = await invitesService.cancel(payload.inviteId, user.id);
+        return success({ invite }, "Invite cancelled");
+      });
+    });
+
     socket.on("disconnect", () => {
       const player = socket.data.player;
       if (!player) return;
@@ -704,6 +747,24 @@ function safely(socket, acknowledge, action) {
     socket.emit(SERVER_EVENTS.ERROR_MESSAGE, response);
     acknowledge?.(response);
   }
+}
+
+async function safelyAsync(socket, acknowledge, action) {
+  try {
+    const result = await action();
+    acknowledge?.(result);
+  } catch (error) {
+    const response = failure(error.message);
+    socket.emit(SERVER_EVENTS.INVITE_ERROR, response);
+    socket.emit(SERVER_EVENTS.ERROR_MESSAGE, response);
+    acknowledge?.(response);
+  }
+}
+
+function requiredAuthenticatedUser(socket) {
+  const user = socket.data.authenticatedUser;
+  if (!user) throw new Error("Login is required for real-time invites");
+  return user;
 }
 
 function safelyHighCard(socket, acknowledge, action) {
@@ -973,4 +1034,5 @@ module.exports = {
   highCardService,
   warService,
   blackjackService,
+  invitesService,
 };

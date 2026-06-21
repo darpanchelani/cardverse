@@ -93,6 +93,33 @@ class RoomService {
     );
   }
 
+  getRoomByCode(roomCode) {
+    return this.getRoom(roomCode);
+  }
+
+  isUserInRoom(roomCode, userId) {
+    return Boolean(
+      this.getRoom(roomCode)?.players.some(
+        (player) => player.id === String(userId),
+      ),
+    );
+  }
+
+  canInviteToRoom(roomCode, fromUserId, toUserId) {
+    const room = this._requiredRoom(roomCode);
+    if (!this.isUserInRoom(room.roomCode, fromUserId)) {
+      throw new Error("You must be in the room to invite friends");
+    }
+    if (room.players.some((player) => player.id === String(toUserId))) {
+      throw new Error("This player is already in the room");
+    }
+    if (room.players.length >= room.maxPlayers) throw new Error("Room is full");
+    if (![ROOM_STATUSES.WAITING, ROOM_STATUSES.READY].includes(room.status)) {
+      throw new Error("Room is already playing");
+    }
+    return room;
+  }
+
   getPublicRooms() {
     return [...this.rooms.values()]
       .filter(

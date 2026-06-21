@@ -13,6 +13,11 @@ and cloud match history, and join synchronized Socket.IO game rooms.
 - Secure token storage with `flutter_secure_storage`
 - MongoDB cloud profiles, online match history, achievements, and statistics
 - Real user search, friend requests, friend removal, and presence
+- Real room invitations with live accept, decline, cancel, and expiry handling
+- Persistent in-app notifications with unread badges and real-time delivery
+- Virtual coin customization for card themes, table themes, and avatar frames
+- Account privacy, online presence, notification, sound, and vibration settings
+- Soft account deletion with explicit confirmation
 - Global leaderboards for wins, XP, coins, and win rate
 - Responsive home dashboard with player progress summary
 - Computer game catalog with available and coming-soon titles
@@ -40,12 +45,13 @@ and cloud match history, and join synchronized Socket.IO game rooms.
 - Validated six-character room codes with copy and join flows
 - Public room browser with live backend room data and game filters
 - Cloud friends list with search, presence status, removal, and room invites
-- Local invitation inbox with accept and decline actions
+- Cloud invitation inbox with incoming and outgoing status
 - Real-time multiplayer room lobby with synchronized player slots and ready states
 - Live room chat, typing indicators, and system messages through Socket.IO
 - Host-controlled bot simulation and synchronized start-game events
 - In-memory Node.js room, player, and chat services
 - Connection, reconnection, offline-state, and backend-error UI
+- Shared loading, empty, retry, and confirmation components
 - Guest mode retains local progress and offline play without an account
 - Profile reset with confirmation
 - Responsive game grid designed for mobile and wider displays
@@ -88,6 +94,7 @@ Coming soon:
 - Socket.IO and `socket_io_client`
 - MongoDB and Mongoose
 - JWT and bcrypt password hashing
+- Helmet, compression, CORS controls, and API rate limiting
 
 ## Prerequisites
 
@@ -150,6 +157,14 @@ Set a long random `JWT_SECRET` and the correct `MONGO_URI` in
 `backend/.env`. The backend exits with a clear error when MongoDB cannot be
 reached.
 
+For production, set `CORS_ORIGIN` to the allowed frontend origin instead of
+`*`, use MongoDB Atlas or another secured MongoDB deployment, and run:
+
+```bash
+npm ci
+npm run start:prod
+```
+
 The server runs at `http://localhost:5050`. Verify it with:
 
 ```bash
@@ -163,7 +178,8 @@ occupies port `5000`.
 
 ```bash
 flutter run -d macos \
-  --dart-define=SOCKET_BASE_URL=http://localhost:5050
+  --dart-define=SOCKET_BASE_URL=http://localhost:5050 \
+  --dart-define=API_BASE_URL=http://localhost:5050/api
 ```
 
 ### Run on iOS Simulator
@@ -171,7 +187,8 @@ flutter run -d macos \
 ```bash
 open -a Simulator
 flutter run \
-  --dart-define=SOCKET_BASE_URL=http://localhost:5050
+  --dart-define=SOCKET_BASE_URL=http://localhost:5050 \
+  --dart-define=API_BASE_URL=http://localhost:5050/api
 ```
 
 To target a specific simulator:
@@ -190,7 +207,8 @@ then run:
 ```bash
 flutter devices
 flutter run -d <device-id> \
-  --dart-define=SOCKET_BASE_URL=http://10.0.2.2:5050
+  --dart-define=SOCKET_BASE_URL=http://10.0.2.2:5050 \
+  --dart-define=API_BASE_URL=http://10.0.2.2:5050/api
 ```
 
 For a physical Android or iOS device, replace the URL with the Mac's local
@@ -201,7 +219,8 @@ on the same network.
 
 ```bash
 flutter run -d chrome \
-  --dart-define=SOCKET_BASE_URL=http://localhost:5050
+  --dart-define=SOCKET_BASE_URL=http://localhost:5050 \
+  --dart-define=API_BASE_URL=http://localhost:5050/api
 ```
 
 If Flutter has not been added to `PATH`, replace `flutter` in these commands
@@ -230,6 +249,7 @@ lib/
     ├── games/
     ├── history/
     ├── home/
+    ├── invites/
     ├── leaderboard/
     ├── multiplayer/
     │   ├── controllers/
@@ -240,9 +260,12 @@ lib/
     │   ├── war/
     │   └── widgets/
     ├── onboarding/
+    ├── notifications/
     ├── profile/
     ├── progress/
     ├── rooms/
+    ├── settings/
+    ├── customization/
     └── splash/
 ```
 
@@ -270,6 +293,10 @@ Splash
         -> Room Lobby
      -> Friends
      -> Invites
+     -> Notifications
+     -> Customization
+     -> Account Settings
+     -> App Settings
      -> Leaderboard
      -> Profile
         -> Achievements
@@ -310,7 +337,9 @@ memory, so restarting the backend clears rooms and messages. The app supports:
 - Browsing public rooms
 - Synchronized player slots, bots, and readiness across clients
 - Searching for real users and managing friend requests
-- Inviting authenticated friends through the existing room invite UI
+- Inviting authenticated friends through room lobbies
+- Receiving real-time invite dialogs and persistent invite notifications
+- Accepting, declining, or cancelling invitations
 - Sending real-time room chat messages
 - Playing synchronized High Card matches with backend-controlled card draws
 - Tracking shared scores and round history across all connected clients
@@ -324,6 +353,19 @@ Active rooms, chat, and game state remain in memory and are cleared when the
 backend restarts. User accounts, friends, online match records, cloud
 achievements, and leaderboard statistics persist in MongoDB. Firebase is not
 used.
+
+## Customization
+
+Cosmetic items use virtual reward coins only. Card themes, table themes, and
+avatar frames are purchased and equipped through the cloud profile. No
+real-money purchase or gambling flow is included.
+
+## Deployment
+
+The backend includes a root API response, health endpoint, centralized JSON
+errors, configurable CORS, compression, security headers, API rate limiting,
+and expired-invite cleanup. See [backend/README.md](backend/README.md) for
+Render, Railway, Fly.io, and MongoDB Atlas notes.
 
 Online High Card rewards are saved to local progress:
 

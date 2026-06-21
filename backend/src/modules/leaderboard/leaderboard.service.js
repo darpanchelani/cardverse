@@ -12,7 +12,7 @@ class LeaderboardService {
     const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
     let users = await User.find()
       .select(
-        "username avatar level xp coins totalGames totalWins updatedAt",
+        "username avatar avatarFrame level xp coins totalGames totalWins updatedAt",
       )
       .sort({ [sortField]: -1, totalGames: -1 })
       .limit(safeLimit)
@@ -39,6 +39,7 @@ function entryPayload(user) {
     userId: user._id.toString(),
     username: user.username,
     avatar: user.avatar,
+    avatarFrame: user.avatarFrame,
     level: user.level,
     xp: user.xp,
     coins: user.coins,

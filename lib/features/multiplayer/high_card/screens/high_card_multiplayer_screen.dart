@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/network/socket_connection_state.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
@@ -71,6 +72,9 @@ class _HighCardMultiplayerScreenState extends State<HighCardMultiplayerScreen>
             game.isConnected &&
             controllers.connection.state == SocketConnectionState.connected;
         return Scaffold(
+          backgroundColor: AppServicesScope.maybeOf(
+            context,
+          )?.customization.tableColor,
           appBar: AppBar(
             title: const Text('Online High Card'),
             actions: [

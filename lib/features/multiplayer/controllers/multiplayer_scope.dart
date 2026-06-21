@@ -33,6 +33,7 @@ class MultiplayerControllers {
     required this.highCard,
     required this.war,
     required this.blackjack,
+    required this.socket,
   });
 
   factory MultiplayerControllers.create({
@@ -79,6 +80,7 @@ class MultiplayerControllers {
         progressController: progressController,
         cloudMatchService: cloudMatchService,
       ),
+      socket: socket,
     );
     unawaited(controllers.friends.loadFriends());
     unawaited(controllers.invites.loadInvites());
@@ -96,6 +98,7 @@ class MultiplayerControllers {
   final HighCardMultiplayerController highCard;
   final WarMultiplayerController war;
   final BlackjackMultiplayerController blackjack;
+  final SocketService socket;
 
   void updateIdentity({
     required String userId,
@@ -145,6 +148,7 @@ class MultiplayerControllers {
         service: SocketBlackjackService(socket),
         currentUserId: 'current_user',
       ),
+      socket: socket,
     );
   }
 }

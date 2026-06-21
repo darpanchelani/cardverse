@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/network/socket_connection_state.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
@@ -14,6 +15,7 @@ import 'package:cardverse/features/multiplayer/widgets/room_settings_card_widget
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 
 class RoomLobbyScreen extends StatefulWidget {
   const RoomLobbyScreen({required this.roomCode, super.key});
@@ -250,6 +252,8 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
   }
 
   Future<void> _showInviteSheet(MultiplayerControllers controllers) async {
+    final auth = AuthScope.maybeOf(context);
+    final invites = AppServicesScope.maybeOf(context)?.invites;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -277,33 +281,48 @@ class _RoomLobbyScreenState extends State<RoomLobbyScreen> {
                 ),
               ),
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                  itemCount: controllers.friends.friends.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 9),
-                  itemBuilder: (context, index) {
-                    final friend = controllers.friends.friends[index];
-                    return FriendTileWidget(
-                      friend: friend,
-                      onInvite: friend.status == 'offline'
-                          ? null
-                          : () async {
-                              await controllers.invites.sendInvite(
-                                friend,
-                                controllers.room.currentRoom!,
-                              );
-                              if (!sheetContext.mounted) return;
-                              ScaffoldMessenger.of(sheetContext).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Invite sent to ${friend.username}.',
-                                  ),
-                                ),
-                              );
-                            },
-                    );
-                  },
-                ),
+                child: auth?.isAuthenticated != true || invites == null
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(28),
+                          child: Text(
+                            'Login to invite real friends to this room.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                        itemCount: controllers.friends.friends.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 9),
+                        itemBuilder: (context, index) {
+                          final friend = controllers.friends.friends[index];
+                          return FriendTileWidget(
+                            friend: friend,
+                            onInvite: friend.status == 'offline'
+                                ? null
+                                : () async {
+                                    final sent = await invites.sendInvite(
+                                      friend.id,
+                                      controllers.room.currentRoom!.roomCode,
+                                    );
+                                    if (!sheetContext.mounted) return;
+                                    ScaffoldMessenger.of(
+                                      sheetContext,
+                                    ).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          sent == null
+                                              ? invites.errorMessage ??
+                                                    'Could not send invite.'
+                                              : 'Invite sent to ${friend.username}.',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                          );
+                        },
+                      ),
               ),
             ],
           ),

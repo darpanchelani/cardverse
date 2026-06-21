@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/utils/number_format_utils.dart';
@@ -100,16 +101,26 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 _CloudBanner(isAuthenticated: auth?.isAuthenticated ?? false),
                 const SizedBox(height: 20),
-                CircleAvatar(
-                  radius: 52,
-                  backgroundColor: AppColors.gold,
-                  child: Text(
-                    _initials(cloud?.username ?? profile.username),
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: 'Arial',
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _avatarFrameColor(cloud?.avatarFrame ?? 'default'),
+                      width: 4,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 52,
+                    backgroundColor: AppColors.gold,
+                    child: Text(
+                      _initials(cloud?.username ?? profile.username),
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'Arial',
+                      ),
                     ),
                   ),
                 ),
@@ -119,6 +130,14 @@ class ProfileScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
+                if (cloud != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Card: ${cloud.equippedCardTheme} · Table: ${cloud.equippedTableTheme}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.mutedText),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Text(
                   cloud == null
@@ -206,6 +225,24 @@ class ProfileScreen extends StatelessWidget {
                   onPressed: () => context.push(AppRoutes.achievements),
                   icon: const Icon(Icons.emoji_events_outlined),
                   label: const Text('View Achievements'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.customization),
+                  icon: const Icon(Icons.palette_outlined),
+                  label: const Text('Customize Cards and Table'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.accountSettings),
+                  icon: const Icon(Icons.manage_accounts_outlined),
+                  label: const Text('Account Settings'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.appSettings),
+                  icon: const Icon(Icons.tune_rounded),
+                  label: const Text('App Settings'),
                 ),
                 const SizedBox(height: 10),
                 if (auth?.isAuthenticated == true) ...[
@@ -315,6 +352,9 @@ class ProfileScreen extends StatelessWidget {
     multiplayer.connection.disconnect();
 
     await auth?.logout();
+    if (!context.mounted) return;
+    AppServicesScope.maybeOf(context)?.notifications.clear();
+    AppServicesScope.maybeOf(context)?.invites.clear();
     final storage = await LocalStorageService.create();
     var guestId = await storage.getString(StorageKeys.multiplayerUserId);
     guestId ??=
@@ -423,6 +463,13 @@ String _initials(String name) {
   }
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }
+
+Color _avatarFrameColor(String frame) => switch (frame) {
+  'bronze' => const Color(0xFFB87333),
+  'silver' => const Color(0xFFC0C0C0),
+  'gold' || 'champion' => AppColors.gold,
+  _ => AppColors.border,
+};
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({

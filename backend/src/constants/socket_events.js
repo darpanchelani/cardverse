@@ -32,6 +32,10 @@ const CLIENT_EVENTS = Object.freeze({
   BLACKJACK_REMATCH_REQUEST: "blackjack:rematch_request",
   BLACKJACK_REMATCH_ACCEPT: "blackjack:rematch_accept",
   BLACKJACK_LEAVE_GAME: "blackjack:leave_game",
+  INVITE_SEND: "invite:send",
+  INVITE_ACCEPT: "invite:accept",
+  INVITE_DECLINE: "invite:decline",
+  INVITE_CANCEL: "invite:cancel",
 });
 
 const SERVER_EVENTS = Object.freeze({
@@ -72,6 +76,14 @@ const SERVER_EVENTS = Object.freeze({
   BLACKJACK_ERROR: "blackjack:error",
   BLACKJACK_REMATCH_REQUESTED: "blackjack:rematch_requested",
   BLACKJACK_REMATCH_STARTED: "blackjack:rematch_started",
+  INVITE_RECEIVED: "invite:received",
+  INVITE_ACCEPTED: "invite:accepted",
+  INVITE_DECLINED: "invite:declined",
+  INVITE_CANCELLED: "invite:cancelled",
+  INVITE_ERROR: "invite:error",
+  NOTIFICATION_NEW: "notification:new",
+  NOTIFICATION_UNREAD_COUNT: "notification:unread_count",
+  USER_STATS_UPDATED: "user:stats_updated",
 });
 
 module.exports = { CLIENT_EVENTS, SERVER_EVENTS };

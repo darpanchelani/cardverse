@@ -39,6 +39,10 @@ abstract final class SocketEvents {
   static const blackjackRematchRequest = 'blackjack:rematch_request';
   static const blackjackRematchAccept = 'blackjack:rematch_accept';
   static const blackjackLeaveGame = 'blackjack:leave_game';
+  static const inviteSend = 'invite:send';
+  static const inviteAccept = 'invite:accept';
+  static const inviteDecline = 'invite:decline';
+  static const inviteCancel = 'invite:cancel';
 
   static const connectionSuccess = 'connection:success';
   static const roomCreated = 'room:created';
@@ -74,6 +78,14 @@ abstract final class SocketEvents {
   static const blackjackError = 'blackjack:error';
   static const blackjackRematchRequested = 'blackjack:rematch_requested';
   static const blackjackRematchStarted = 'blackjack:rematch_started';
+  static const inviteReceived = 'invite:received';
+  static const inviteAccepted = 'invite:accepted';
+  static const inviteDeclined = 'invite:declined';
+  static const inviteCancelled = 'invite:cancelled';
+  static const inviteError = 'invite:error';
+  static const notificationNew = 'notification:new';
+  static const notificationUnreadCount = 'notification:unread_count';
+  static const userStatsUpdated = 'user:stats_updated';
 }
 
 class SocketService extends ChangeNotifier {

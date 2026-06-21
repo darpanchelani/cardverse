@@ -1,11 +1,14 @@
 const { FriendRequest } = require("./friend_request.model");
 const { User } = require("../users/user.model");
+const {
+  notificationsService,
+} = require("../notifications/notifications.service");
 
 class FriendsService {
   async list(userId) {
     const user = await User.findById(userId).populate(
       "friends",
-      "username avatar level totalWins coins isOnline lastSeenAt",
+      "username avatar avatarFrame level totalWins coins isOnline lastSeenAt settings",
     );
     return user.friends.map(friendPayload);
   }
@@ -53,6 +56,12 @@ class FriendsService {
       fromUser: fromUser._id,
       toUser: toUser._id,
     });
+    await notificationsService.createNotification(toUser._id, {
+      type: "friend_request",
+      title: "Friend Request",
+      message: `${fromUser.username} sent you a friend request`,
+      data: { requestId: request.id, fromUserId: fromUser.id },
+    });
     return request.populate([
       { path: "fromUser", select: "username avatar level totalWins isOnline" },
       { path: "toUser", select: "username avatar level totalWins isOnline" },
@@ -78,6 +87,13 @@ class FriendsService {
     ]);
     request.status = "accepted";
     await request.save();
+    const recipient = await User.findById(recipientId);
+    await notificationsService.createNotification(request.fromUser, {
+      type: "friend_accept",
+      title: "Friend Request Accepted",
+      message: `${recipient?.username || "A player"} accepted your friend request`,
+      data: { friendId: recipientId.toString() },
+    });
     return request;
   }
 
@@ -104,11 +120,15 @@ function friendPayload(user) {
     id: user.id,
     username: user.username,
     avatar: user.avatar,
+    avatarFrame: user.avatarFrame,
     level: user.level,
     wins: user.totalWins,
     coins: user.coins,
-    isOnline: user.isOnline,
-    status: user.isOnline ? "online" : "offline",
+    isOnline: user.settings?.showOnlineStatus === false ? false : user.isOnline,
+    status:
+      user.settings?.showOnlineStatus === false || !user.isOnline
+        ? "offline"
+        : "online",
     lastSeenAt: user.lastSeenAt,
   };
 }

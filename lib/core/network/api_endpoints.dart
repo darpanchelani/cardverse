@@ -12,4 +12,8 @@ abstract final class ApiEndpoints {
   static const leaderboard = '/leaderboard';
   static const myLeaderboard = '/leaderboard/me';
   static const achievements = '/achievements/me';
+  static const notifications = '/notifications';
+  static const invites = '/invites';
+  static const themes = '/themes';
+  static const userSettings = '/users/me/settings';
 }

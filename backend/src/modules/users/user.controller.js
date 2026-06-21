@@ -33,6 +33,18 @@ function createUserController(service) {
         next(error);
       }
     },
+    remove: async (request, response, next) => {
+      try {
+        await service.softDelete(request.user);
+        response.json({
+          success: true,
+          message: "Account deleted",
+          data: {},
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
   };
 }
 

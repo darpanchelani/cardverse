@@ -29,15 +29,25 @@ class LeaderboardTileWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: rank == 1
-                ? AppColors.ink.withValues(alpha: 0.12)
-                : AppColors.inputGreen,
-            child: Text(
-              '$rank',
-              style: TextStyle(
-                color: rank == 1 ? AppColors.ink : AppColors.paleGold,
-                fontWeight: FontWeight.w800,
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _frameColor(entry.avatarFrame),
+                width: 2,
+              ),
+            ),
+            child: CircleAvatar(
+              backgroundColor: rank == 1
+                  ? AppColors.ink.withValues(alpha: 0.12)
+                  : AppColors.inputGreen,
+              child: Text(
+                '$rank',
+                style: TextStyle(
+                  color: rank == 1 ? AppColors.ink : AppColors.paleGold,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
@@ -110,4 +120,11 @@ class LeaderboardTileWidget extends StatelessWidget {
       ),
     );
   }
+
+  Color _frameColor(String frame) => switch (frame) {
+    'bronze' => const Color(0xFFB87333),
+    'silver' => const Color(0xFFC0C0C0),
+    'gold' || 'champion' => AppColors.gold,
+    _ => AppColors.border,
+  };
 }

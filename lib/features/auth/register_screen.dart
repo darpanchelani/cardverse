@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:cardverse/core/widgets/custom_text_field.dart';
@@ -168,13 +169,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
       username: auth.user!.username,
     );
     if (!mounted) return;
-    MultiplayerScope.of(context).updateIdentity(
+    final multiplayer = MultiplayerScope.of(context);
+    multiplayer.updateIdentity(
       userId: auth.user!.id,
       username: auth.user!.username,
       level: auth.user!.level,
       avatar: auth.user!.avatar,
       token: auth.token,
     );
+    final services = AppServicesScope.maybeOf(context);
+    if (services != null) {
+      await multiplayer.connection.connect();
+      await Future.wait([
+        services.notifications.loadNotifications(),
+        services.invites.loadInvites(),
+        services.customization.loadThemes(),
+      ]);
+    }
+    if (!mounted) return;
     context.go(AppRoutes.home);
   }
 

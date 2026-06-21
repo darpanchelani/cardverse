@@ -1,4 +1,5 @@
 import 'package:cardverse/app/routes.dart';
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/widgets/custom_button.dart';
 import 'package:cardverse/core/widgets/custom_text_field.dart';
@@ -148,7 +149,8 @@ class _LoginScreenState extends State<LoginScreen> {
       username: auth.identityUsername,
     );
     if (!mounted) return;
-    MultiplayerScope.of(context).updateIdentity(
+    final multiplayer = MultiplayerScope.of(context);
+    multiplayer.updateIdentity(
       userId: auth.isAuthenticated
           ? auth.user!.id
           : MultiplayerScope.of(context).connection.userId,
@@ -157,6 +159,20 @@ class _LoginScreenState extends State<LoginScreen> {
       avatar: auth.identityAvatar,
       token: auth.token,
     );
+    final services = AppServicesScope.maybeOf(context);
+    if (auth.isAuthenticated && services != null) {
+      await multiplayer.connection.connect();
+      await Future.wait([
+        services.notifications.loadNotifications(),
+        services.invites.loadInvites(),
+        services.customization.loadThemes(),
+      ]);
+    } else {
+      services?.notifications.clear();
+      services?.invites.clear();
+      await services?.customization.loadThemes();
+    }
+    if (!mounted) return;
     context.go(AppRoutes.home);
   }
 }
