@@ -20,7 +20,7 @@ class CardVerseTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.sizeOf(context).width >= 760;
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1024;
     return AppBar(
       automaticallyImplyLeading: false,
       titleSpacing: isDesktop ? 28 : 18,
@@ -90,7 +90,7 @@ class CardVerseBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.sizeOf(context).width >= 760) {
+    if (MediaQuery.sizeOf(context).width >= 1024) {
       return const SizedBox.shrink();
     }
     return NavigationBar(

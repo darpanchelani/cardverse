@@ -7,10 +7,13 @@ class LeaderboardApiService {
 
   final ApiClient _api;
 
-  Future<List<LeaderboardEntryModel>> getLeaderboard(String type) async {
+  Future<List<LeaderboardEntryModel>> getLeaderboard(
+    String type, {
+    String period = 'overall',
+  }) async {
     final response = await _api.get(
       ApiEndpoints.leaderboard,
-      query: {'type': type},
+      query: {'type': type, 'period': period},
     );
     final data = Map<String, dynamic>.from(
       response['data'] as Map? ?? const {},

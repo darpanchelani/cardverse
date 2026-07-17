@@ -8,123 +8,141 @@ class LeaderboardTileWidget extends StatelessWidget {
     required this.rank,
     required this.entry,
     required this.isCurrentUser,
+    this.metric = 'wins',
     super.key,
   });
 
   final int rank;
   final LeaderboardEntryModel entry;
   final bool isCurrentUser;
+  final String metric;
 
   @override
   Widget build(BuildContext context) {
-    final emphasized = rank == 1 || isCurrentUser;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: rank == 1 ? AppColors.gold : AppColors.cardGreen,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: emphasized ? AppColors.paleGold : AppColors.border,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _frameColor(entry.avatarFrame),
-                width: 2,
-              ),
-            ),
-            child: CircleAvatar(
-              backgroundColor: rank == 1
-                  ? AppColors.ink.withValues(alpha: 0.12)
-                  : AppColors.inputGreen,
+    return Semantics(
+      label:
+          'Rank $rank, ${entry.username}, ${_metricValue(entry, metric)} ${_metricLabel(metric)}',
+      child: Container(
+        color: isCurrentUser
+            ? AppColors.gold.withValues(alpha: 0.1)
+            : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 38,
               child: Text(
-                '$rank',
+                '#$rank',
                 style: TextStyle(
-                  color: rank == 1 ? AppColors.ink : AppColors.paleGold,
-                  fontWeight: FontWeight.w800,
+                  color: isCurrentUser ? AppColors.gold : AppColors.mutedText,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        entry.username,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: rank == 1
-                                  ? AppColors.ink
-                                  : AppColors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.inputGreen,
+              foregroundColor: AppColors.paleGold,
+              child: Text(
+                _initials(entry.username),
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          entry.username,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                       ),
-                    ),
-                    if (isCurrentUser) ...[
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.person_rounded,
-                        size: 16,
-                        color: rank == 1 ? AppColors.ink : AppColors.gold,
-                      ),
+                      if (isCurrentUser) ...[
+                        const SizedBox(width: 6),
+                        const Text(
+                          'You',
+                          style: TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-                const SizedBox(height: 4),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Level ${entry.level}  |  ${entry.totalGames} games',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.mutedText,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
                 Text(
-                  'Level ${entry.level} • ${entry.wins} wins • '
-                  '${NumberFormatUtils.percentage(entry.winRate)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: rank == 1
-                        ? AppColors.ink.withValues(alpha: 0.72)
-                        : AppColors.mutedText,
-                    fontFamily: 'Arial',
+                  _metricValue(entry, metric),
+                  style: const TextStyle(
+                    color: AppColors.paleGold,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  _metricLabel(metric),
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
+                    fontSize: 11,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                NumberFormatUtils.compact(entry.coins),
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: rank == 1 ? AppColors.ink : AppColors.gold,
-                ),
-              ),
-              Text(
-                'coins',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: rank == 1
-                      ? AppColors.ink.withValues(alpha: 0.65)
-                      : AppColors.mutedText,
-                  fontFamily: 'Arial',
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
 
-  Color _frameColor(String frame) => switch (frame) {
-    'bronze' => const Color(0xFFB87333),
-    'silver' => const Color(0xFFC0C0C0),
-    'gold' || 'champion' => AppColors.gold,
-    _ => AppColors.border,
+String _metricValue(LeaderboardEntryModel entry, String metric) {
+  return switch (metric) {
+    'xp' => NumberFormatUtils.compact(entry.xp),
+    'coins' => NumberFormatUtils.compact(entry.coins),
+    'winRate' => NumberFormatUtils.percentage(entry.winRate),
+    _ => NumberFormatUtils.compact(entry.wins),
   };
+}
+
+String _metricLabel(String metric) => switch (metric) {
+  'xp' => 'XP',
+  'coins' => 'coins',
+  'winRate' => 'win rate',
+  _ => 'wins',
+};
+
+String _initials(String name) {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return 'CV';
+  if (parts.length == 1) {
+    return parts.first
+        .substring(0, parts.first.length.clamp(1, 2))
+        .toUpperCase();
+  }
+  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }

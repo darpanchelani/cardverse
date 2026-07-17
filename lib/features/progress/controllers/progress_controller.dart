@@ -60,6 +60,7 @@ class ProgressController extends ChangeNotifier {
       leaderboard = await _leaderboardService.getLeaderboard(
         profile: profile,
         stats: gameStats,
+        matchHistory: matchHistory,
       );
     } catch (_) {
       errorMessage = 'Could not load local progress.';
@@ -153,6 +154,7 @@ class ProgressController extends ChangeNotifier {
       leaderboard = await _leaderboardService.getLeaderboard(
         profile: profile,
         stats: gameStats,
+        matchHistory: matchHistory,
       );
       await _leaderboardService.refreshLeaderboard(leaderboard);
       notifyListeners();
@@ -164,11 +166,18 @@ class ProgressController extends ChangeNotifier {
     }
   }
 
-  Future<List<LeaderboardEntryModel>> leaderboardFor(String? gameType) async {
+  Future<List<LeaderboardEntryModel>> leaderboardFor(
+    String? gameType, {
+    String period = 'overall',
+    String metric = 'wins',
+  }) async {
     return _leaderboardService.getLeaderboard(
       gameType: gameType,
       profile: profile,
       stats: gameStats,
+      matchHistory: matchHistory,
+      period: period,
+      metric: metric,
     );
   }
 
@@ -199,6 +208,7 @@ class ProgressController extends ChangeNotifier {
     leaderboard = await _leaderboardService.getLeaderboard(
       profile: profile,
       stats: gameStats,
+      matchHistory: matchHistory,
     );
     await _leaderboardService.refreshLeaderboard(leaderboard);
     notifyListeners();
