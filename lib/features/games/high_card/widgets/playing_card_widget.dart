@@ -1,7 +1,9 @@
+import 'package:card_game/card_game.dart' show SuitedCardBuilder;
+import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/features/games/adapters/card_game_adapter.dart';
 import 'package:cardverse/features/games/models/playing_card_model.dart';
 import 'package:flutter/material.dart';
-import 'package:cardverse/app/app_services_scope.dart';
 
 class PlayingCardWidget extends StatelessWidget {
   const PlayingCardWidget({
@@ -54,97 +56,89 @@ class _CardFront extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = card.colorType == CardColorType.red
-        ? (theme == 'minimal_dark'
-              ? const Color(0xFFFF7C82)
-              : const Color(0xFFC7353B))
-        : (theme == 'minimal_dark' ? AppColors.white : const Color(0xFF111A17));
+    final renderedCard = card.cardGameCard;
+    final accent = _frontAccent(theme);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme == 'minimal_dark'
-            ? const Color(0xFF171A19)
-            : theme == 'desert_thar'
-            ? const Color(0xFFFFE8BE)
-            : AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme == 'neon_night'
-              ? const Color(0xFF7184FF)
-              : AppColors.gold,
-          width: 2,
+    return Semantics(
+      image: true,
+      label: card.displayName,
+      child: Container(
+        decoration: BoxDecoration(
+          color: accent,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.32),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 13,
-            top: 11,
-            child: _CardCorner(card: card, color: cardColor),
-          ),
-          Center(
-            child: Text(
-              card.suitSymbol,
-              style: TextStyle(
-                color: cardColor,
-                fontFamily: 'Arial',
-                fontSize: 58,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 13,
-            bottom: 11,
-            child: RotatedBox(
-              quarterTurns: 2,
-              child: _CardCorner(card: card, color: cardColor),
-            ),
-          ),
-        ],
+        padding: const EdgeInsets.all(2),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(13),
+          child: renderedCard == null
+              ? _FallbackCardFront(card: card)
+              : SuitedCardBuilder(card: renderedCard),
+        ),
       ),
     );
   }
 }
 
-class _CardCorner extends StatelessWidget {
-  const _CardCorner({required this.card, required this.color});
+class _FallbackCardFront extends StatelessWidget {
+  const _FallbackCardFront({required this.card});
 
   final PlayingCardModel card;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          card.rank,
-          style: TextStyle(
-            color: color,
-            fontFamily: 'Arial',
-            fontSize: 23,
-            height: 0.95,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        Text(
-          card.suitSymbol,
-          style: TextStyle(
-            color: color,
-            fontFamily: 'Arial',
-            fontSize: 20,
-            height: 1,
-          ),
-        ),
-      ],
+    final color = card.colorType == CardColorType.red
+        ? const Color(0xFFC7353B)
+        : const Color(0xFF111A17);
+
+    return ColoredBox(
+      color: AppColors.white,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final rankSize = (constraints.maxWidth * 0.26)
+              .clamp(14.0, 30.0)
+              .toDouble();
+          final suitSize = (constraints.maxWidth * 0.52)
+              .clamp(28.0, 64.0)
+              .toDouble();
+          return Stack(
+            children: [
+              Positioned(
+                left: 8,
+                top: 7,
+                child: Text(
+                  '${card.rank}\n${card.suitSymbol}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: color,
+                    fontFamily: 'Arial',
+                    fontSize: rankSize,
+                    height: 0.8,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Center(
+                child: Text(
+                  card.suitSymbol,
+                  style: TextStyle(
+                    color: color,
+                    fontFamily: 'Arial',
+                    fontSize: suitSize,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -156,78 +150,124 @@ class _CardBack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: switch (theme) {
-            'royal_gold' => const [Color(0xFF2F2410), Color(0xFF9A711F)],
-            'neon_night' => const [Color(0xFF080A1A), Color(0xFF3448C5)],
-            'desert_thar' => const [Color(0xFF56351D), Color(0xFFB7803C)],
-            'minimal_dark' => const [Color(0xFF080909), Color(0xFF303533)],
-            _ => const [AppColors.cardGreen, AppColors.inputGreen],
-          },
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.gold, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 9),
+    final colors = _backColors(theme);
+    final accent = _frontAccent(theme);
+
+    return Semantics(
+      image: true,
+      label: 'Face-down playing card',
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: colors,
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Container(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(5),
+        child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+            border: Border.all(color: accent, width: 1.5),
           ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const Positioned(
-                left: 10,
-                top: 8,
-                child: Text(
-                  '♠',
-                  style: TextStyle(color: AppColors.gold, fontSize: 18),
-                ),
-              ),
-              const Positioned(
-                right: 10,
-                bottom: 8,
-                child: Text(
-                  '♦',
-                  style: TextStyle(color: AppColors.gold, fontSize: 18),
-                ),
-              ),
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.gold.withValues(alpha: 0.12),
-                  border: Border.all(color: AppColors.gold),
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  'CV',
-                  style: TextStyle(
-                    color: AppColors.paleGold,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final cardWidth = constraints.maxWidth;
+                final markSize = (cardWidth * 0.5).clamp(28.0, 64.0).toDouble();
+                final monogramSize = (cardWidth * 0.18)
+                    .clamp(11.0, 22.0)
+                    .toDouble();
+                return CustomPaint(
+                  painter: _CardBackPatternPainter(
+                    color: accent.withValues(alpha: 0.2),
+                    spacing: (cardWidth * 0.12).clamp(7.0, 14.0).toDouble(),
                   ),
-                ),
-              ),
-            ],
+                  child: Center(
+                    child: Container(
+                      width: markSize,
+                      height: markSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: colors.first.withValues(alpha: 0.88),
+                        border: Border.all(color: accent, width: 1.5),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'CV',
+                        style: TextStyle(
+                          color: accent,
+                          fontFamily: 'Arial',
+                          fontSize: monogramSize,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+class _CardBackPatternPainter extends CustomPainter {
+  const _CardBackPatternPainter({required this.color, required this.spacing});
+
+  final Color color;
+  final double spacing;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+
+    for (double x = -size.height; x < size.width; x += spacing) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x + size.height, size.height),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(x + size.height, 0),
+        Offset(x, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CardBackPatternPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.spacing != spacing;
+}
+
+Color _frontAccent(String theme) => switch (theme) {
+  'royal_gold' => const Color(0xFFD8AA3E),
+  'neon_night' => const Color(0xFF8D9BFF),
+  'desert_thar' => const Color(0xFFD39B51),
+  'minimal_dark' => const Color(0xFF858E89),
+  _ => AppColors.gold,
+};
+
+List<Color> _backColors(String theme) => switch (theme) {
+  'royal_gold' => const [Color(0xFF2F2410), Color(0xFF795515)],
+  'neon_night' => const [Color(0xFF080A1A), Color(0xFF263698)],
+  'desert_thar' => const [Color(0xFF56351D), Color(0xFF9A632C)],
+  'minimal_dark' => const [Color(0xFF080909), Color(0xFF292E2C)],
+  _ => const [AppColors.cardGreen, AppColors.inputGreen],
+};

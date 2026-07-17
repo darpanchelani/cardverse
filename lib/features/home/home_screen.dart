@@ -1,6 +1,7 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/widgets/app_navigation.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -83,7 +84,12 @@ class HomeScreen extends StatelessWidget {
     ];
 
     return Scaffold(
+      appBar: const CardVerseTopBar(current: AppSection.home),
+      bottomNavigationBar: const CardVerseBottomNavigation(
+        current: AppSection.home,
+      ),
       body: SafeArea(
+        top: false,
         child: CustomScrollView(
           slivers: [
             SliverPadding(
@@ -233,7 +239,7 @@ class _ProgressSummary extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.cardGreen,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
@@ -280,12 +286,12 @@ class _HomeActionCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: action.onTap,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: action.emphasized ? AppColors.gold : AppColors.cardGreen,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: action.emphasized ? AppColors.paleGold : AppColors.border,
             ),
@@ -299,7 +305,7 @@ class _HomeActionCard extends StatelessWidget {
                   color: action.emphasized
                       ? AppColors.ink.withValues(alpha: 0.1)
                       : AppColors.inputGreen,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   action.icon,

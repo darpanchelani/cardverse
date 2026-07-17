@@ -1,5 +1,6 @@
 import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
+import 'package:cardverse/core/widgets/app_navigation.dart';
 import 'package:cardverse/core/widgets/game_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +27,10 @@ class GameSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose a Game')),
+      appBar: const CardVerseTopBar(current: AppSection.play),
+      bottomNavigationBar: const CardVerseBottomNavigation(
+        current: AppSection.play,
+      ),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
@@ -39,14 +43,26 @@ class GameSelectionScreen extends StatelessWidget {
             return CustomScrollView(
               slivers: [
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(20, 26, 20, 16),
                   sliver: SliverToBoxAdapter(
-                    child: Text(
-                      mode == 'computer'
-                          ? 'Pick a table and challenge the house.'
-                          : 'Pick a game for your room.',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.mutedText,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1040),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Choose a game',
+                            style: Theme.of(context).textTheme.headlineLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            mode == 'computer'
+                                ? 'Pick a table and challenge the house.'
+                                : 'Pick a game for your room.',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(color: AppColors.mutedText),
+                          ),
+                        ],
                       ),
                     ),
                   ),

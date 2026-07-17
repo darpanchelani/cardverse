@@ -3,6 +3,7 @@ import 'package:cardverse/app/app_services_scope.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/utils/number_format_utils.dart';
+import 'package:cardverse/core/widgets/app_navigation.dart';
 import 'package:cardverse/features/auth/controllers/auth_controller.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
@@ -20,8 +21,8 @@ class ProfileScreen extends StatelessWidget {
     final controller = ProgressScope.of(context);
     final auth = AuthScope.maybeOf(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
+      appBar: CardVerseTopBar(
+        current: AppSection.profile,
         actions: [
           IconButton(
             tooltip: 'Refresh progress',
@@ -29,6 +30,9 @@ class ProfileScreen extends StatelessWidget {
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
+      ),
+      bottomNavigationBar: const CardVerseBottomNavigation(
+        current: AppSection.profile,
       ),
       body: SafeArea(
         top: false,
