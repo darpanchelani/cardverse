@@ -26,7 +26,9 @@ extension on LeaderboardPeriod {
 }
 
 class LeaderboardScreen extends StatefulWidget {
-  const LeaderboardScreen({super.key});
+  const LeaderboardScreen({super.key, this.embedded = false});
+
+  final bool? embedded;
 
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
@@ -92,6 +94,102 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final currentUsername = auth?.user?.username ?? controller.profile.username;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
+    final body = SafeArea(
+      top: false,
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: _LeaderboardHeader(
+                    metric: _metric,
+                    showRefresh: widget.embedded == true,
+                    refreshing: _loading,
+                    onRefresh: _load,
+                    onMetricChanged: (metric) {
+                      if (metric == _metric) return;
+                      setState(() => _metric = metric);
+                      _load();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: Column(
+                    children: [
+                      _ModeBanner(isCloud: isCloud),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<LeaderboardPeriod>(
+                          expandedInsets: EdgeInsets.zero,
+                          showSelectedIcon: false,
+                          segments: LeaderboardPeriod.values
+                              .map(
+                                (period) => ButtonSegment(
+                                  value: period,
+                                  label: Text(period.label),
+                                ),
+                              )
+                              .toList(),
+                          selected: {_period},
+                          onSelectionChanged: (selection) {
+                            final period = selection.first;
+                            if (period == _period) return;
+                            setState(() => _period = period);
+                            _load();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: AnimatedSwitcher(
+                    duration: reduceMotion
+                        ? Duration.zero
+                        : const Duration(milliseconds: 200),
+                    child: KeyedSubtree(
+                      key: ValueKey(
+                        '${_period.apiValue}-$_metric-$_loading-${_errorMessage != null}',
+                      ),
+                      child: _LeaderboardBody(
+                        entries: _entries,
+                        metric: _metric,
+                        period: _period,
+                        currentUsername: currentUsername,
+                        loading: _loading,
+                        errorMessage: _errorMessage,
+                        onRetry: _load,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (widget.embedded == true) return body;
     return Scaffold(
       appBar: CardVerseTopBar(
         current: AppSection.leaderboard,
@@ -106,98 +204,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       bottomNavigationBar: const CardVerseBottomNavigation(
         current: AppSection.leaderboard,
       ),
-      body: SafeArea(
-        top: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1040),
-                    child: _LeaderboardHeader(
-                      metric: _metric,
-                      onMetricChanged: (metric) {
-                        if (metric == _metric) return;
-                        setState(() => _metric = metric);
-                        _load();
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1040),
-                    child: Column(
-                      children: [
-                        _ModeBanner(isCloud: isCloud),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: SegmentedButton<LeaderboardPeriod>(
-                            expandedInsets: EdgeInsets.zero,
-                            showSelectedIcon: false,
-                            segments: LeaderboardPeriod.values
-                                .map(
-                                  (period) => ButtonSegment(
-                                    value: period,
-                                    label: Text(period.label),
-                                  ),
-                                )
-                                .toList(),
-                            selected: {_period},
-                            onSelectionChanged: (selection) {
-                              final period = selection.first;
-                              if (period == _period) return;
-                              setState(() => _period = period);
-                              _load();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1040),
-                    child: AnimatedSwitcher(
-                      duration: reduceMotion
-                          ? Duration.zero
-                          : const Duration(milliseconds: 200),
-                      child: KeyedSubtree(
-                        key: ValueKey(
-                          '${_period.apiValue}-$_metric-$_loading-${_errorMessage != null}',
-                        ),
-                        child: _LeaderboardBody(
-                          entries: _entries,
-                          metric: _metric,
-                          period: _period,
-                          currentUsername: currentUsername,
-                          loading: _loading,
-                          errorMessage: _errorMessage,
-                          onRetry: _load,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: body,
     );
   }
 }
@@ -206,10 +213,16 @@ class _LeaderboardHeader extends StatelessWidget {
   const _LeaderboardHeader({
     required this.metric,
     required this.onMetricChanged,
+    required this.showRefresh,
+    required this.refreshing,
+    required this.onRefresh,
   });
 
   final String metric;
   final ValueChanged<String> onMetricChanged;
+  final bool showRefresh;
+  final bool refreshing;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -251,6 +264,14 @@ class _LeaderboardHeader extends StatelessWidget {
                 ],
               ),
             ),
+            if (showRefresh) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Refresh leaderboard',
+                onPressed: refreshing ? null : onRefresh,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
           ],
         );
         final metricControl = _MetricMenu(

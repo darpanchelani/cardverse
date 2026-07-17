@@ -14,12 +14,274 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.embedded = false});
+
+  final bool? embedded;
 
   @override
   Widget build(BuildContext context) {
     final controller = ProgressScope.of(context);
     final auth = AuthScope.maybeOf(context);
+    final body = SafeArea(
+      top: false,
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, child) {
+          if (controller.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.gold),
+            );
+          }
+          final profile = controller.profile;
+          final cloud = auth?.user;
+          final stats = [
+            (
+              'Level',
+              '${cloud?.level ?? profile.level}',
+              Icons.military_tech_outlined,
+            ),
+            ('XP', '${cloud?.xp ?? profile.xp}', Icons.auto_awesome_outlined),
+            (
+              'Coins',
+              '${cloud?.coins ?? profile.coins}',
+              Icons.monetization_on_outlined,
+            ),
+            (
+              'Games',
+              '${cloud?.totalGames ?? profile.totalGames}',
+              Icons.style_outlined,
+            ),
+            (
+              'Wins',
+              '${cloud?.totalWins ?? profile.totalWins}',
+              Icons.emoji_events_outlined,
+            ),
+            (
+              'Losses',
+              '${cloud?.totalLosses ?? profile.totalLosses}',
+              Icons.close_rounded,
+            ),
+            (
+              'Draws',
+              '${cloud?.totalDraws ?? profile.totalDraws}',
+              Icons.sync_rounded,
+            ),
+            (
+              'Win Rate',
+              NumberFormatUtils.percentage(cloud?.winRate ?? profile.winRate),
+              Icons.donut_large_rounded,
+            ),
+            (
+              'Win Streak',
+              '${cloud?.currentStreak ?? profile.currentStreak}',
+              Icons.local_fire_department_outlined,
+            ),
+            (
+              'Best Streak',
+              '${cloud?.bestStreak ?? profile.bestStreak}',
+              Icons.bolt_rounded,
+            ),
+          ];
+          final unlocked = controller.achievements
+              .where((item) => item.isUnlocked)
+              .take(3)
+              .toList();
+          final recentMatches = controller.matchHistory.take(3).toList();
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
+            children: [
+              if (embedded == true)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    tooltip: 'Refresh progress',
+                    onPressed: controller.refreshProgress,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                ),
+              _CloudBanner(isAuthenticated: auth?.isAuthenticated ?? false),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _avatarFrameColor(cloud?.avatarFrame ?? 'default'),
+                    width: 4,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 52,
+                  backgroundColor: AppColors.gold,
+                  child: Text(
+                    _initials(cloud?.username ?? profile.username),
+                    style: const TextStyle(
+                      color: AppColors.ink,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Arial',
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                cloud?.username ?? profile.username,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              if (cloud != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Card: ${cloud.equippedCardTheme} · Table: ${cloud.equippedTableTheme}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.mutedText),
+                ),
+              ],
+              const SizedBox(height: 6),
+              Text(
+                cloud == null
+                    ? 'Favorite game: ${profile.favoriteGame}'
+                    : '${cloud.email} · Favorite game: ${cloud.favoriteGame}',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.gold),
+              ),
+              const SizedBox(height: 28),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 620 ? 3 : 2;
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: stats.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      mainAxisSpacing: 11,
+                      crossAxisSpacing: 11,
+                      mainAxisExtent: 125,
+                    ),
+                    itemBuilder: (context, index) {
+                      final stat = stats[index];
+                      return StatsCardWidget(
+                        label: stat.$1,
+                        value: stat.$2,
+                        icon: stat.$3,
+                      );
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 28),
+              _SectionHeader(
+                title: 'Recent Achievements',
+                actionLabel: 'View All',
+                onPressed: () => context.push(AppRoutes.achievements),
+              ),
+              const SizedBox(height: 10),
+              if (unlocked.isEmpty)
+                const _EmptyPanel(
+                  icon: Icons.lock_outline_rounded,
+                  text: 'Play games to unlock achievements.',
+                )
+              else
+                ...unlocked.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 9),
+                    child: AchievementBadgeWidget(
+                      achievement: item,
+                      compact: true,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              _SectionHeader(
+                title: 'Recent Matches',
+                actionLabel: 'View All',
+                onPressed: () => context.push(AppRoutes.matchHistory),
+              ),
+              const SizedBox(height: 10),
+              if (recentMatches.isEmpty)
+                const _EmptyPanel(
+                  icon: Icons.history_rounded,
+                  text: 'Your recent matches will appear here.',
+                )
+              else
+                ...recentMatches.map(
+                  (match) => Padding(
+                    padding: const EdgeInsets.only(bottom: 9),
+                    child: MatchHistoryTileWidget(match: match),
+                  ),
+                ),
+              const SizedBox(height: 18),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.matchHistory),
+                icon: const Icon(Icons.history_rounded),
+                label: const Text('View Match History'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.achievements),
+                icon: const Icon(Icons.emoji_events_outlined),
+                label: const Text('View Achievements'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.customization),
+                icon: const Icon(Icons.palette_outlined),
+                label: const Text('Customize Cards and Table'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.accountSettings),
+                icon: const Icon(Icons.manage_accounts_outlined),
+                label: const Text('Account Settings'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.appSettings),
+                icon: const Icon(Icons.tune_rounded),
+                label: const Text('App Settings'),
+              ),
+              const SizedBox(height: 10),
+              if (auth?.isAuthenticated == true) ...[
+                OutlinedButton.icon(
+                  onPressed: () => _editProfile(context, auth!),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit Cloud Profile'),
+                ),
+                const SizedBox(height: 10),
+              ] else ...[
+                FilledButton.icon(
+                  onPressed: () => context.go(AppRoutes.login),
+                  icon: const Icon(Icons.cloud_upload_outlined),
+                  label: const Text('Login to Save Online'),
+                ),
+                const SizedBox(height: 10),
+              ],
+              OutlinedButton.icon(
+                onPressed: () => _confirmLogout(context, auth),
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('Log Out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.gold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: () => _confirmReset(context, controller),
+                icon: const Icon(Icons.delete_forever_outlined),
+                label: const Text('Reset Local Progress'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (embedded == true) return body;
     return Scaffold(
       appBar: CardVerseTopBar(
         current: AppSection.profile,
@@ -34,258 +296,7 @@ class ProfileScreen extends StatelessWidget {
       bottomNavigationBar: const CardVerseBottomNavigation(
         current: AppSection.profile,
       ),
-      body: SafeArea(
-        top: false,
-        child: AnimatedBuilder(
-          animation: controller,
-          builder: (context, child) {
-            if (controller.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: AppColors.gold),
-              );
-            }
-            final profile = controller.profile;
-            final cloud = auth?.user;
-            final stats = [
-              (
-                'Level',
-                '${cloud?.level ?? profile.level}',
-                Icons.military_tech_outlined,
-              ),
-              ('XP', '${cloud?.xp ?? profile.xp}', Icons.auto_awesome_outlined),
-              (
-                'Coins',
-                '${cloud?.coins ?? profile.coins}',
-                Icons.monetization_on_outlined,
-              ),
-              (
-                'Games',
-                '${cloud?.totalGames ?? profile.totalGames}',
-                Icons.style_outlined,
-              ),
-              (
-                'Wins',
-                '${cloud?.totalWins ?? profile.totalWins}',
-                Icons.emoji_events_outlined,
-              ),
-              (
-                'Losses',
-                '${cloud?.totalLosses ?? profile.totalLosses}',
-                Icons.close_rounded,
-              ),
-              (
-                'Draws',
-                '${cloud?.totalDraws ?? profile.totalDraws}',
-                Icons.sync_rounded,
-              ),
-              (
-                'Win Rate',
-                NumberFormatUtils.percentage(cloud?.winRate ?? profile.winRate),
-                Icons.donut_large_rounded,
-              ),
-              (
-                'Win Streak',
-                '${cloud?.currentStreak ?? profile.currentStreak}',
-                Icons.local_fire_department_outlined,
-              ),
-              (
-                'Best Streak',
-                '${cloud?.bestStreak ?? profile.bestStreak}',
-                Icons.bolt_rounded,
-              ),
-            ];
-            final unlocked = controller.achievements
-                .where((item) => item.isUnlocked)
-                .take(3)
-                .toList();
-            final recentMatches = controller.matchHistory.take(3).toList();
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
-              children: [
-                _CloudBanner(isAuthenticated: auth?.isAuthenticated ?? false),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _avatarFrameColor(cloud?.avatarFrame ?? 'default'),
-                      width: 4,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    radius: 52,
-                    backgroundColor: AppColors.gold,
-                    child: Text(
-                      _initials(cloud?.username ?? profile.username),
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        fontFamily: 'Arial',
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  cloud?.username ?? profile.username,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                if (cloud != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Card: ${cloud.equippedCardTheme} · Table: ${cloud.equippedTableTheme}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.mutedText),
-                  ),
-                ],
-                const SizedBox(height: 6),
-                Text(
-                  cloud == null
-                      ? 'Favorite game: ${profile.favoriteGame}'
-                      : '${cloud.email} · Favorite game: ${cloud.favoriteGame}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: AppColors.gold),
-                ),
-                const SizedBox(height: 28),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final columns = constraints.maxWidth >= 620 ? 3 : 2;
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: stats.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: columns,
-                        mainAxisSpacing: 11,
-                        crossAxisSpacing: 11,
-                        mainAxisExtent: 125,
-                      ),
-                      itemBuilder: (context, index) {
-                        final stat = stats[index];
-                        return StatsCardWidget(
-                          label: stat.$1,
-                          value: stat.$2,
-                          icon: stat.$3,
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 28),
-                _SectionHeader(
-                  title: 'Recent Achievements',
-                  actionLabel: 'View All',
-                  onPressed: () => context.push(AppRoutes.achievements),
-                ),
-                const SizedBox(height: 10),
-                if (unlocked.isEmpty)
-                  const _EmptyPanel(
-                    icon: Icons.lock_outline_rounded,
-                    text: 'Play games to unlock achievements.',
-                  )
-                else
-                  ...unlocked.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 9),
-                      child: AchievementBadgeWidget(
-                        achievement: item,
-                        compact: true,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 20),
-                _SectionHeader(
-                  title: 'Recent Matches',
-                  actionLabel: 'View All',
-                  onPressed: () => context.push(AppRoutes.matchHistory),
-                ),
-                const SizedBox(height: 10),
-                if (recentMatches.isEmpty)
-                  const _EmptyPanel(
-                    icon: Icons.history_rounded,
-                    text: 'Your recent matches will appear here.',
-                  )
-                else
-                  ...recentMatches.map(
-                    (match) => Padding(
-                      padding: const EdgeInsets.only(bottom: 9),
-                      child: MatchHistoryTileWidget(match: match),
-                    ),
-                  ),
-                const SizedBox(height: 18),
-                OutlinedButton.icon(
-                  onPressed: () => context.push(AppRoutes.matchHistory),
-                  icon: const Icon(Icons.history_rounded),
-                  label: const Text('View Match History'),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => context.push(AppRoutes.achievements),
-                  icon: const Icon(Icons.emoji_events_outlined),
-                  label: const Text('View Achievements'),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => context.push(AppRoutes.customization),
-                  icon: const Icon(Icons.palette_outlined),
-                  label: const Text('Customize Cards and Table'),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => context.push(AppRoutes.accountSettings),
-                  icon: const Icon(Icons.manage_accounts_outlined),
-                  label: const Text('Account Settings'),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => context.push(AppRoutes.appSettings),
-                  icon: const Icon(Icons.tune_rounded),
-                  label: const Text('App Settings'),
-                ),
-                const SizedBox(height: 10),
-                if (auth?.isAuthenticated == true) ...[
-                  OutlinedButton.icon(
-                    onPressed: () => _editProfile(context, auth!),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit Cloud Profile'),
-                  ),
-                  const SizedBox(height: 10),
-                ] else ...[
-                  FilledButton.icon(
-                    onPressed: () => context.go(AppRoutes.login),
-                    icon: const Icon(Icons.cloud_upload_outlined),
-                    label: const Text('Login to Save Online'),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                OutlinedButton.icon(
-                  onPressed: () => _confirmLogout(context, auth),
-                  icon: const Icon(Icons.logout_rounded),
-                  label: const Text('Log Out'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.gold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextButton.icon(
-                  onPressed: () => _confirmReset(context, controller),
-                  icon: const Icon(Icons.delete_forever_outlined),
-                  label: const Text('Reset Local Progress'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
+      body: body,
     );
   }
 

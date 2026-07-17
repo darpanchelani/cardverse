@@ -119,6 +119,7 @@ class MultiplayerControllers {
       avatar: avatar,
       token: token,
     );
+    unawaited(friends.loadFriends());
   }
 
   factory MultiplayerControllers.dummy() {

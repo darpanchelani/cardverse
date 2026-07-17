@@ -8,7 +8,11 @@ import 'package:go_router/go_router.dart';
 import 'package:cardverse/features/notifications/widgets/notification_badge_widget.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.embedded = false});
+
+  // Nullable so an instance retained across hot reload can safely migrate
+  // from the pre-shell widget shape where this field did not exist.
+  final bool? embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +23,7 @@ class HomeScreen extends StatelessWidget {
         subtitle: 'Practice against smart bots',
         icon: Icons.smart_toy_rounded,
         emphasized: true,
-        onTap: () => context.push('${AppRoutes.games}/computer'),
+        onTap: () => context.go('${AppRoutes.games}/computer'),
       ),
       _HomeAction(
         title: 'Play With Friends',
@@ -43,7 +47,7 @@ class HomeScreen extends StatelessWidget {
         title: 'Friends',
         subtitle: 'See who is ready to play',
         icon: Icons.people_outline_rounded,
-        onTap: () => context.push(AppRoutes.friends),
+        onTap: () => context.go(AppRoutes.friends),
       ),
       _HomeAction(
         title: 'Invites',
@@ -73,135 +77,133 @@ class HomeScreen extends StatelessWidget {
         title: 'Leaderboard',
         subtitle: 'See the top players',
         icon: Icons.emoji_events_outlined,
-        onTap: () => context.push(AppRoutes.leaderboard),
+        onTap: () => context.go(AppRoutes.leaderboard),
       ),
       _HomeAction(
         title: 'Profile',
         subtitle: 'View your player stats',
         icon: Icons.person_outline_rounded,
-        onTap: () => context.push(AppRoutes.profile),
+        onTap: () => context.go(AppRoutes.profile),
       ),
     ];
 
+    final body = SafeArea(
+      top: false,
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 12),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: AppColors.gold,
+                        child: AnimatedBuilder(
+                          animation: progress,
+                          builder: (context, child) => Text(
+                            _initials(progress.profile.username),
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'Arial',
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome to CardVerse',
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            AnimatedBuilder(
+                              animation: progress,
+                              builder: (context, child) => Text(
+                                progress.profile.username,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppColors.gold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (AppServicesScope.maybeOf(context) != null)
+                        AnimatedBuilder(
+                          animation: AppServicesScope.of(context).notifications,
+                          builder: (context, _) => NotificationBadgeWidget(
+                            count: AppServicesScope.of(
+                              context,
+                            ).notifications.unreadCount,
+                            child: IconButton(
+                              tooltip: 'Notifications',
+                              onPressed: () =>
+                                  context.push(AppRoutes.notifications),
+                              icon: const Icon(
+                                Icons.notifications_none_rounded,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: AnimatedBuilder(
+                    animation: progress,
+                    builder: (context, child) =>
+                        _ProgressSummary(controller: progress),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
+            sliver: SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = constraints.crossAxisExtent >= 650
+                    ? 2
+                    : 1;
+                return SliverGrid.builder(
+                  itemCount: actions.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    mainAxisExtent: crossAxisCount == 1 ? 112 : 126,
+                  ),
+                  itemBuilder: (context, index) =>
+                      _HomeActionCard(action: actions[index]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+    if (embedded == true) return body;
     return Scaffold(
       appBar: const CardVerseTopBar(current: AppSection.home),
       bottomNavigationBar: const CardVerseBottomNavigation(
         current: AppSection.home,
       ),
-      body: SafeArea(
-        top: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(22, 24, 22, 12),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 760),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 26,
-                          backgroundColor: AppColors.gold,
-                          child: AnimatedBuilder(
-                            animation: progress,
-                            builder: (context, child) => Text(
-                              _initials(progress.profile.username),
-                              style: const TextStyle(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: 'Arial',
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome to CardVerse',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineMedium,
-                              ),
-                              const SizedBox(height: 4),
-                              AnimatedBuilder(
-                                animation: progress,
-                                builder: (context, child) => Text(
-                                  progress.profile.username,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(color: AppColors.gold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (AppServicesScope.maybeOf(context) != null)
-                          AnimatedBuilder(
-                            animation: AppServicesScope.of(
-                              context,
-                            ).notifications,
-                            builder: (context, _) => NotificationBadgeWidget(
-                              count: AppServicesScope.of(
-                                context,
-                              ).notifications.unreadCount,
-                              child: IconButton(
-                                tooltip: 'Notifications',
-                                onPressed: () =>
-                                    context.push(AppRoutes.notifications),
-                                icon: const Icon(
-                                  Icons.notifications_none_rounded,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 760),
-                    child: AnimatedBuilder(
-                      animation: progress,
-                      builder: (context, child) =>
-                          _ProgressSummary(controller: progress),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
-              sliver: SliverLayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.crossAxisExtent >= 650
-                      ? 2
-                      : 1;
-                  return SliverGrid.builder(
-                    itemCount: actions.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      mainAxisExtent: crossAxisCount == 1 ? 112 : 126,
-                    ),
-                    itemBuilder: (context, index) =>
-                        _HomeActionCard(action: actions[index]),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: body,
     );
   }
 }

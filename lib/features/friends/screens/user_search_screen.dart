@@ -16,6 +16,7 @@ class UserSearchScreen extends StatefulWidget {
 class _UserSearchScreenState extends State<UserSearchScreen> {
   final _controller = TextEditingController();
   List<FriendModel> _results = [];
+  final Set<String> _sendingRequests = {};
   bool _loading = false;
   String? _error;
 
@@ -41,6 +42,28 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
       _error = error.toString();
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _sendFriendRequest(FriendModel user) async {
+    if (_sendingRequests.contains(user.id)) return;
+    setState(() => _sendingRequests.add(user.id));
+    try {
+      await FriendsApiService(
+        ApiClient.globalInstance!,
+        AuthScope.of(context),
+      ).sendFriendRequestById(user.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Friend request sent to ${user.username}.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not send the friend request.')),
+      );
+    } finally {
+      if (mounted) setState(() => _sendingRequests.remove(user.id));
+    }
   }
 
   @override
@@ -91,20 +114,8 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 padding: const EdgeInsets.only(top: 10),
                 child: FriendTileWidget(
                   friend: user,
-                  onInvite: () async {
-                    await FriendsApiService(
-                      ApiClient.globalInstance!,
-                      AuthScope.of(context),
-                    ).sendFriendRequestById(user.id);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Friend request sent to ${user.username}.',
-                        ),
-                      ),
-                    );
-                  },
+                  actionTooltip: 'Add ${user.username} as a friend',
+                  onInvite: () => _sendFriendRequest(user),
                 ),
               ),
             ),

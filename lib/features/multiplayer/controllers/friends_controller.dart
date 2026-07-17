@@ -10,6 +10,7 @@ class FriendsController extends ChangeNotifier {
   List<FriendModel> friends = [];
   List<FriendModel> searchResults = [];
   bool isLoading = false;
+  bool hasLoaded = false;
   String? errorMessage;
   String? actionMessage;
 
@@ -23,6 +24,7 @@ class FriendsController extends ChangeNotifier {
     } catch (_) {
       errorMessage = 'Could not load friends.';
     } finally {
+      hasLoaded = true;
       isLoading = false;
       notifyListeners();
     }

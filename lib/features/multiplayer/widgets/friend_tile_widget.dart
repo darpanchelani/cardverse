@@ -9,11 +9,13 @@ class FriendTileWidget extends StatelessWidget {
     super.key,
     this.onInvite,
     this.onRemove,
+    this.actionTooltip,
   });
 
   final FriendModel friend;
   final VoidCallback? onInvite;
   final VoidCallback? onRemove;
+  final String? actionTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +82,7 @@ class FriendTileWidget extends StatelessWidget {
           ),
           if (onInvite != null)
             IconButton(
-              tooltip: 'Invite ${friend.username}',
+              tooltip: actionTooltip ?? 'Invite ${friend.username}',
               onPressed: onInvite,
               icon: const Icon(Icons.person_add_alt_1_rounded),
               color: AppColors.gold,

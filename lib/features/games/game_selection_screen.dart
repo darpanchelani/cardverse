@@ -6,9 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class GameSelectionScreen extends StatelessWidget {
-  const GameSelectionScreen({required this.mode, super.key});
+  const GameSelectionScreen({
+    required this.mode,
+    super.key,
+    this.embedded = false,
+  });
 
   final String mode;
+  final bool? embedded;
 
   static const _games = [
     _GameData('High Card', Icons.filter_1_rounded, false),
@@ -26,75 +31,77 @@ class GameSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final body = SafeArea(
+      top: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 900
+              ? 4
+              : constraints.maxWidth >= 600
+              ? 3
+              : 2;
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 26, 20, 16),
+                sliver: SliverToBoxAdapter(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1040),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Choose a game',
+                          style: Theme.of(context).textTheme.headlineLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          mode == 'computer'
+                              ? 'Pick a table and challenge the house.'
+                              : 'Pick a game for your room.',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: AppColors.mutedText),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                sliver: SliverGrid.builder(
+                  itemCount: _games.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    mainAxisExtent: 182,
+                  ),
+                  itemBuilder: (context, index) {
+                    final game = _games[index];
+                    return GameCard(
+                      name: game.name,
+                      icon: game.icon,
+                      isLocked: game.isLocked,
+                      onTap: () => _handleGameTap(context, game.name),
+                      onLockedTap: () =>
+                          _showMessage(context, 'This game is coming soon.'),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (embedded == true) return body;
     return Scaffold(
       appBar: const CardVerseTopBar(current: AppSection.play),
       bottomNavigationBar: const CardVerseBottomNavigation(
         current: AppSection.play,
       ),
-      body: SafeArea(
-        top: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 900
-                ? 4
-                : constraints.maxWidth >= 600
-                ? 3
-                : 2;
-            return CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 26, 20, 16),
-                  sliver: SliverToBoxAdapter(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1040),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Choose a game',
-                            style: Theme.of(context).textTheme.headlineLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            mode == 'computer'
-                                ? 'Pick a table and challenge the house.'
-                                : 'Pick a game for your room.',
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: AppColors.mutedText),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-                  sliver: SliverGrid.builder(
-                    itemCount: _games.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      mainAxisExtent: 182,
-                    ),
-                    itemBuilder: (context, index) {
-                      final game = _games[index];
-                      return GameCard(
-                        name: game.name,
-                        icon: game.icon,
-                        isLocked: game.isLocked,
-                        onTap: () => _handleGameTap(context, game.name),
-                        onLockedTap: () =>
-                            _showMessage(context, 'This game is coming soon.'),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
+      body: body,
     );
   }
 

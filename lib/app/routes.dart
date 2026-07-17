@@ -1,4 +1,5 @@
 import 'package:cardverse/features/auth/login_screen.dart';
+import 'package:cardverse/core/widgets/app_navigation.dart';
 import 'package:cardverse/features/games/blackjack/blackjack_screen.dart';
 import 'package:cardverse/features/games/game_selection_screen.dart';
 import 'package:cardverse/features/games/high_card/high_card_screen.dart';
@@ -67,12 +68,60 @@ abstract final class AppRoutes {
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(path: login, builder: (context, state) => const LoginScreen()),
-      GoRoute(path: home, builder: (context, state) => const HomeScreen()),
-      GoRoute(
-        path: '$games/:mode',
-        builder: (context, state) => GameSelectionScreen(
-          mode: state.pathParameters['mode'] ?? 'computer',
-        ),
+      StatefulShellRoute(
+        builder: (context, state, navigationShell) =>
+            CardVerseNavigationShell(navigationShell: navigationShell),
+        navigatorContainerBuilder: (context, navigationShell, children) =>
+            CardVerseBranchContainer(
+              currentIndex: navigationShell.currentIndex,
+              children: children,
+            ),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: home,
+                builder: (context, state) => const HomeScreen(embedded: true),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '$games/computer',
+                builder: (context, state) =>
+                    const GameSelectionScreen(mode: 'computer', embedded: true),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: friends,
+                builder: (context, state) =>
+                    const FriendsScreen(embedded: true),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: leaderboard,
+                builder: (context, state) =>
+                    const LeaderboardScreen(embedded: true),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: profile,
+                builder: (context, state) =>
+                    const ProfileScreen(embedded: true),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: highCard,
@@ -102,10 +151,6 @@ abstract final class AppRoutes {
       GoRoute(
         path: publicRooms,
         builder: (context, state) => const PublicRoomsScreen(),
-      ),
-      GoRoute(
-        path: friends,
-        builder: (context, state) => const FriendsScreen(),
       ),
       GoRoute(
         path: friendRequests,
@@ -147,14 +192,6 @@ abstract final class AppRoutes {
         builder: (context, state) => BlackjackMultiplayerScreen(
           roomCode: state.pathParameters['roomCode'] ?? '',
         ),
-      ),
-      GoRoute(
-        path: leaderboard,
-        builder: (context, state) => const LeaderboardScreen(),
-      ),
-      GoRoute(
-        path: profile,
-        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: matchHistory,
