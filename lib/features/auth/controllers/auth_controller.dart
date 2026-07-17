@@ -57,24 +57,8 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> register({
-    required String username,
-    required String email,
-    required String password,
-  }) async {
-    return _authenticate(
-      () => _authService.register(
-        username: username,
-        email: email,
-        password: password,
-      ),
-    );
-  }
-
-  Future<bool> login({required String email, required String password}) async {
-    return _authenticate(
-      () => _authService.login(email: email, password: password),
-    );
+  Future<bool> loginWithGoogle({required String idToken}) async {
+    return _authenticate(() => _authService.loginWithGoogle(idToken: idToken));
   }
 
   Future<bool> _authenticate(

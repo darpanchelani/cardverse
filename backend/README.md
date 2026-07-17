@@ -29,10 +29,13 @@ Required:
 
 - `MONGO_URI`
 - `JWT_SECRET`
+- `GOOGLE_CLIENT_IDS` (comma-separated OAuth client IDs accepted as token audiences)
 
 Production deployments should set an explicit `CORS_ORIGIN`, use a long random
 JWT secret, and point `MONGO_URI` to MongoDB Atlas or another secured MongoDB
-deployment.
+deployment. Google sign-in posts an ID token to `POST /api/auth/google`; the
+backend verifies its signature, issuer, expiry, and audience before issuing a
+CardVerse JWT. Email/password registration and login endpoints are not exposed.
 
 ## Production
 

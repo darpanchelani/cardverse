@@ -1,23 +1,11 @@
 function createAuthController(authService) {
   return {
-    register: async (request, response, next) => {
+    google: async (request, response, next) => {
       try {
-        const data = await authService.register(request.body);
-        response.status(201).json({
-          success: true,
-          message: "Registration successful",
-          data,
-        });
-      } catch (error) {
-        next(error);
-      }
-    },
-    login: async (request, response, next) => {
-      try {
-        const data = await authService.login(request.body);
+        const data = await authService.loginWithGoogle(request.body);
         response.json({
           success: true,
-          message: "Login successful",
+          message: "Google sign-in successful",
           data,
         });
       } catch (error) {

@@ -6,24 +6,17 @@ const {
 const { validateRequest } = require("../../middleware/validate.middleware");
 const { createAuthController } = require("./auth.controller");
 const { AuthService } = require("./auth.service");
-const { registerValidators, loginValidators } = require("./auth.validators");
+const { googleValidators } = require("./auth.validators");
 
 function createAuthRouter() {
   const router = express.Router();
   const controller = createAuthController(new AuthService());
   router.post(
-    "/register",
+    "/google",
     authRateLimiter,
-    registerValidators,
+    googleValidators,
     validateRequest,
-    controller.register,
-  );
-  router.post(
-    "/login",
-    authRateLimiter,
-    loginValidators,
-    validateRequest,
-    controller.login,
+    controller.google,
   );
   router.get("/me", authenticate, controller.me);
   router.post("/logout", authenticate, controller.logout);

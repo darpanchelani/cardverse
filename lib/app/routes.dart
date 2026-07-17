@@ -1,5 +1,4 @@
 import 'package:cardverse/features/auth/login_screen.dart';
-import 'package:cardverse/features/auth/register_screen.dart';
 import 'package:cardverse/features/games/blackjack/blackjack_screen.dart';
 import 'package:cardverse/features/games/game_selection_screen.dart';
 import 'package:cardverse/features/games/high_card/high_card_screen.dart';
@@ -33,7 +32,6 @@ abstract final class AppRoutes {
   static const splash = '/';
   static const onboarding = '/onboarding';
   static const login = '/login';
-  static const register = '/register';
   static const home = '/home';
   static const games = '/games';
   static const highCard = '/high-card';
@@ -69,10 +67,6 @@ abstract final class AppRoutes {
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(path: login, builder: (context, state) => const LoginScreen()),
-      GoRoute(
-        path: register,
-        builder: (context, state) => const RegisterScreen(),
-      ),
       GoRoute(path: home, builder: (context, state) => const HomeScreen()),
       GoRoute(
         path: '$games/:mode',

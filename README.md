@@ -9,7 +9,7 @@ and cloud match history, and join synchronized Socket.IO game rooms.
 
 - Branded splash screen and guided onboarding experience
 - Onboarding completion saved locally
-- JWT registration, login, persistent sessions, logout, and guest access
+- Verified Google sign-in, persistent JWT sessions, logout, and guest access
 - Secure token storage with `flutter_secure_storage`
 - MongoDB cloud profiles, online match history, achievements, and statistics
 - Real user search, friend requests, friend removal, and presence
@@ -93,7 +93,8 @@ Coming soon:
 - Node.js and Express
 - Socket.IO and `socket_io_client`
 - MongoDB and Mongoose
-- JWT and bcrypt password hashing
+- Google Identity Services with backend ID-token verification
+- JWT session tokens
 - Helmet, compression, CORS controls, and API rate limiting
 
 ## Prerequisites
@@ -153,9 +154,27 @@ Start MongoDB before the backend. With Homebrew:
 brew services start mongodb-community
 ```
 
-Set a long random `JWT_SECRET` and the correct `MONGO_URI` in
-`backend/.env`. The backend exits with a clear error when MongoDB cannot be
-reached.
+Set a long random `JWT_SECRET`, the correct `MONGO_URI`, and
+`GOOGLE_CLIENT_IDS` in `backend/.env`. The Google value is a comma-separated
+list of OAuth client IDs whose ID tokens the backend may accept. The backend
+exits with a clear error when a required setting is missing or MongoDB cannot
+be reached.
+
+### Configure Google Sign-In
+
+Create OAuth clients for CardVerse in Google Cloud, then use the web OAuth
+client ID as `GOOGLE_SERVER_CLIENT_ID` for native builds and as
+`GOOGLE_CLIENT_ID` for web. Add every accepted token audience to the backend's
+`GOOGLE_CLIENT_IDS` value.
+
+Google also requires platform registration:
+
+- Add the app's authorized JavaScript origins to the web OAuth client.
+- Register the Android package name and signing SHA fingerprints.
+- Add the reversed iOS OAuth client ID as a URL scheme in
+  `ios/Runner/Info.plist`.
+- For macOS, follow the same URL-scheme setup and enable the Google Sign-In
+  keychain group.
 
 For production, set `CORS_ORIGIN` to the allowed frontend origin instead of
 `*`, use MongoDB Atlas or another secured MongoDB deployment, and run:
@@ -179,7 +198,9 @@ occupies port `5000`.
 ```bash
 flutter run -d macos \
   --dart-define=SOCKET_BASE_URL=http://localhost:5050 \
-  --dart-define=API_BASE_URL=http://localhost:5050/api
+  --dart-define=API_BASE_URL=http://localhost:5050/api \
+  --dart-define=GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID \
+  --dart-define=GOOGLE_SERVER_CLIENT_ID=YOUR_WEB_CLIENT_ID
 ```
 
 ### Run on iOS Simulator
@@ -188,7 +209,9 @@ flutter run -d macos \
 open -a Simulator
 flutter run \
   --dart-define=SOCKET_BASE_URL=http://localhost:5050 \
-  --dart-define=API_BASE_URL=http://localhost:5050/api
+  --dart-define=API_BASE_URL=http://localhost:5050/api \
+  --dart-define=GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID \
+  --dart-define=GOOGLE_SERVER_CLIENT_ID=YOUR_WEB_CLIENT_ID
 ```
 
 To target a specific simulator:
@@ -208,7 +231,8 @@ then run:
 flutter devices
 flutter run -d <device-id> \
   --dart-define=SOCKET_BASE_URL=http://10.0.2.2:5050 \
-  --dart-define=API_BASE_URL=http://10.0.2.2:5050/api
+  --dart-define=API_BASE_URL=http://10.0.2.2:5050/api \
+  --dart-define=GOOGLE_SERVER_CLIENT_ID=YOUR_WEB_CLIENT_ID
 ```
 
 For a physical Android or iOS device, replace the URL with the Mac's local
@@ -220,7 +244,8 @@ on the same network.
 ```bash
 flutter run -d chrome \
   --dart-define=SOCKET_BASE_URL=http://localhost:5050 \
-  --dart-define=API_BASE_URL=http://localhost:5050/api
+  --dart-define=API_BASE_URL=http://localhost:5050/api \
+  --dart-define=GOOGLE_CLIENT_ID=YOUR_WEB_CLIENT_ID
 ```
 
 If Flutter has not been added to `PATH`, replace `flutter` in these commands
@@ -279,7 +304,7 @@ stored in MongoDB.
 ```text
 Splash
   -> Onboarding
-  -> Login or Register
+  -> Continue with Google or Play as guest
   -> Home
      -> Game Selection
      -> Create Room
@@ -304,10 +329,11 @@ Splash
      -> Match History
 ```
 
-Registration and login use the backend API. Passwords are hashed with bcrypt,
-and the returned JWT is stored in platform secure storage. Guest access remains
-available for offline play and can also use multiplayer rooms with a temporary
-identity.
+Google returns an ID token that the backend verifies before creating or loading
+an account. CardVerse then issues its own JWT, stored in platform secure
+storage. Guest access remains available for offline play and can also use
+multiplayer rooms with a temporary identity. There is no email/password login
+or registration flow.
 
 ## Local Progress
 

@@ -8,25 +8,10 @@ class AuthApiService {
 
   final ApiClient _api;
 
-  Future<AuthResponseModel> register({
-    required String username,
-    required String email,
-    required String password,
-  }) async {
+  Future<AuthResponseModel> loginWithGoogle({required String idToken}) async {
     final response = await _api.post(
-      ApiEndpoints.register,
-      data: {'username': username, 'email': email, 'password': password},
-    );
-    return AuthResponseModel.fromJson(response);
-  }
-
-  Future<AuthResponseModel> login({
-    required String email,
-    required String password,
-  }) async {
-    final response = await _api.post(
-      ApiEndpoints.login,
-      data: {'email': email, 'password': password},
+      ApiEndpoints.googleLogin,
+      data: {'idToken': idToken},
     );
     return AuthResponseModel.fromJson(response);
   }

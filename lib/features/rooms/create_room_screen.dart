@@ -15,7 +15,7 @@ class CreateRoomScreen extends StatefulWidget {
 
 class _CreateRoomScreenState extends State<CreateRoomScreen> {
   String _gameType = 'high_card';
-  String _roomType = 'private'; 
+  String _roomType = 'private';  
   int _maxPlayers = 2;
   bool _allowBots = true;
   bool _allowChat = true;

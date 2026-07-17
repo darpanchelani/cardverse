@@ -15,4 +15,14 @@ abstract final class AppConfig {
     'API_BASE_URL',
     defaultValue: '$socketBaseUrl/api',
   );
+
+  /// OAuth client IDs are intentionally supplied at build/run time.
+  ///
+  /// `GOOGLE_CLIENT_ID` is used by web and Apple platforms. Android can read
+  /// its client ID from `google-services.json` instead. `GOOGLE_SERVER_CLIENT_ID`
+  /// should be the web OAuth client ID accepted by the CardVerse backend.
+  static const googleClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');
+  static const googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
 }

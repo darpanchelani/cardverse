@@ -28,7 +28,10 @@ const userSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
-    passwordHash: { type: String, required: true, select: false },
+    // Kept optional so an existing password account can be linked by verified
+    // Google email during migration. Password login is no longer exposed.
+    passwordHash: { type: String, select: false },
+    googleSubject: { type: String, unique: true, sparse: true },
     avatar: { type: String, default: "default" },
     level: { type: Number, default: 1, min: 1 },
     xp: { type: Number, default: 0, min: 0 },
@@ -71,6 +74,7 @@ userSchema.index({ totalWins: -1 });
 userSchema.methods.toSafeObject = function toSafeObject() {
   const value = this.toObject();
   delete value.passwordHash;
+  delete value.googleSubject;
   value.id = value._id.toString();
   delete value._id;
   delete value.__v;

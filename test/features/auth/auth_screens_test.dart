@@ -5,8 +5,9 @@ import 'package:cardverse/core/network/api_client.dart';
 import 'package:cardverse/core/storage/local_storage_service.dart';
 import 'package:cardverse/core/storage/secure_storage_service.dart';
 import 'package:cardverse/features/auth/controllers/auth_controller.dart';
+import 'package:cardverse/features/auth/login_screen.dart';
 import 'package:cardverse/features/auth/services/auth_api_service.dart';
-import 'package:cardverse/features/auth/register_screen.dart';
+import 'package:cardverse/features/auth/services/google_auth_service.dart';
 import 'package:cardverse/features/multiplayer/controllers/multiplayer_scope.dart';
 import 'package:cardverse/features/profile/services/profile_api_service.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
@@ -15,20 +16,68 @@ import 'package:cardverse/features/progress/services/leaderboard_service.dart';
 import 'package:cardverse/features/progress/services/progress_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() {
-  testWidgets('registration saves username and opens the account home', (
+  testWidgets('auth screen offers only Google and guest choices', (
     tester,
   ) async {
+    final harness = await _AuthHarness.create();
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Play as guest'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Create New Account'), findsNothing);
+    expect(find.text('Login'), findsNothing);
+
+    await tester.tap(find.text('Play as guest'));
+    await tester.pumpAndSettle();
+
+    expect(harness.auth.isGuest, isTrue);
+    expect(find.text('Guest Player'), findsOneWidget);
+  });
+
+  testWidgets('Google ID token is exchanged for a CardVerse session', (
+    tester,
+  ) async {
+    final harness = await _AuthHarness.create();
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continue with Google'));
+    await tester.pumpAndSettle();
+
+    expect(harness.adapter.receivedIdToken, 'google-test-token');
+    expect(harness.auth.isAuthenticated, isTrue);
+    expect(find.text('darpan'), findsOneWidget);
+  });
+}
+
+class _AuthHarness {
+  _AuthHarness({
+    required this.auth,
+    required this.progress,
+    required this.multiplayer,
+    required this.adapter,
+  });
+
+  final AuthController auth;
+  final ProgressController progress;
+  final MultiplayerControllers multiplayer;
+  final _GoogleAuthAdapter adapter;
+
+  static Future<_AuthHarness> create() async {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
     final storage = await LocalStorageService.create();
+    final adapter = _GoogleAuthAdapter();
     final dio = Dio(BaseOptions(baseUrl: 'http://cardverse.test/api'));
-    dio.httpClientAdapter = _AuthAdapter();
+    dio.httpClientAdapter = adapter;
     final api = ApiClient(dio: dio);
     final auth = AuthController(
       authService: AuthApiService(api),
@@ -42,13 +91,22 @@ void main() {
       leaderboardService: LeaderboardService(storage),
     );
     await progress.initialize();
-    final multiplayer = MultiplayerControllers.dummy();
+    return _AuthHarness(
+      auth: auth,
+      progress: progress,
+      multiplayer: MultiplayerControllers.dummy(),
+      adapter: adapter,
+    );
+  }
+
+  Widget app() {
     final router = GoRouter(
-      initialLocation: '/register',
+      initialLocation: '/login',
       routes: [
         GoRoute(
-          path: '/register',
-          builder: (context, state) => const RegisterScreen(),
+          path: '/login',
+          builder: (context, state) =>
+              const LoginScreen(googleAuth: _FakeGoogleAuth()),
         ),
         GoRoute(
           path: '/home',
@@ -56,53 +114,49 @@ void main() {
         ),
       ],
     );
-
-    await tester.pumpWidget(
-      ProgressScope(
-        controller: progress,
-        child: AuthScope(
-          controller: auth,
-          child: MultiplayerScope(
-            controllers: multiplayer,
-            child: MaterialApp.router(routerConfig: router),
-          ),
+    return ProgressScope(
+      controller: progress,
+      child: AuthScope(
+        controller: auth,
+        child: MultiplayerScope(
+          controllers: multiplayer,
+          child: MaterialApp.router(routerConfig: router),
         ),
       ),
     );
-
-    final fields = find.byType(TextField);
-    expect(fields, findsNWidgets(5));
-    await tester.enterText(fields.at(0), 'Darpan Chelani');
-    await tester.enterText(fields.at(1), 'darpan');
-    await tester.enterText(fields.at(2), 'darpan@example.com');
-    await tester.enterText(fields.at(3), 'secret12');
-    await tester.enterText(fields.at(4), 'secret12');
-    final registerButton = find.text('Register');
-    await tester.ensureVisible(registerButton);
-    await tester.pumpAndSettle();
-    await tester.tap(registerButton);
-    await tester.pumpAndSettle();
-
-    expect(progress.profile.username, 'darpan');
-    expect(auth.isAuthenticated, isTrue);
-    expect(find.text('darpan'), findsOneWidget);
-  });
+  }
 }
 
-class _AuthAdapter implements HttpClientAdapter {
+class _FakeGoogleAuth implements GoogleAuthGateway {
+  const _FakeGoogleAuth();
+
+  @override
+  Stream<String> get idTokens => const Stream.empty();
+
+  @override
+  Future<String> authenticate() async => 'google-test-token';
+
+  @override
+  Future<void> initialize() async {}
+}
+
+class _GoogleAuthAdapter implements HttpClientAdapter {
+  String? receivedIdToken;
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    expect(options.path, '/auth/register');
-    expect((options.data as Map<String, dynamic>)['username'], 'darpan');
+    expect(options.path, '/auth/google');
+    receivedIdToken =
+        (options.data as Map<String, dynamic>)['idToken'] as String;
     return ResponseBody.fromString(
       jsonEncode({
         'success': true,
         'data': {
-          'token': 'test-token',
+          'token': 'cardverse-test-token',
           'user': {
             '_id': 'account-darpan',
             'username': 'darpan',
