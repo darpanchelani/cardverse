@@ -21,11 +21,10 @@ class FriendTileWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusLabel = friend.status.replaceAll('_', ' ');
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.cardGreen,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [

@@ -7,6 +7,9 @@ void main() {
   testWidgets('navbar stays mounted and preserves branch state', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     final router = GoRouter(
       initialLocation: '/home',
       routes: [

@@ -61,6 +61,9 @@ void main() {
   });
 
   testWidgets('locked games retain coming-soon feedback', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.darkTheme,
@@ -68,6 +71,8 @@ void main() {
       ),
     );
 
+    await tester.tap(find.text('Coming soon').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Rummy'));
     await tester.pump();
     expect(find.text('This game is coming soon.'), findsOneWidget);

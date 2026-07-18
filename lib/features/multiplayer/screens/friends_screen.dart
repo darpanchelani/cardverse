@@ -237,101 +237,59 @@ class _FriendsHeader extends StatelessWidget {
   final VoidCallback onRefresh;
 
   @override
-  Widget build(BuildContext context) {
-    final title = Row(
-      children: [
+  Widget build(BuildContext context) => Row(
+    children: [
+      IconButton(
+        tooltip: 'Back to Home',
+        onPressed: onBack,
+        icon: const Icon(Icons.arrow_back_rounded),
+      ),
+      const SizedBox(width: 4),
+      Expanded(
+        child: Text(
+          'Friends',
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+      ),
+      if (onRequests != null)
         IconButton(
-          tooltip: 'Back to Home',
-          onPressed: onBack,
-          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Friend requests',
+          onPressed: onRequests,
+          icon: const Icon(Icons.mark_email_unread_outlined),
         ),
-        const SizedBox(width: 4),
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.gold,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Icon(Icons.people_rounded, color: AppColors.ink),
+      IconButton(
+        tooltip: isAuthenticated ? 'Add friends' : 'Sign in to add friends',
+        onPressed: onAdd,
+        icon: Icon(
+          isAuthenticated ? Icons.person_add_rounded : Icons.login_rounded,
+          color: AppColors.gold,
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Friends', style: Theme.of(context).textTheme.headlineLarge),
-              const SizedBox(height: 4),
-              Text(
-                'Find players, manage requests, and invite friends to a table.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-    final actions = Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        FilledButton.icon(
-          onPressed: onAdd,
-          icon: Icon(
-            isAuthenticated ? Icons.person_add_rounded : Icons.login_rounded,
-          ),
-          label: Text(isAuthenticated ? 'Add friends' : 'Sign in to add'),
-        ),
-        if (onRequests != null)
-          OutlinedButton.icon(
-            onPressed: onRequests,
-            icon: const Icon(Icons.mark_email_unread_outlined),
-            label: const Text('Requests'),
-          ),
-        IconButton(
-          tooltip: 'Refresh friends',
-          onPressed: onRefresh,
-          icon: const Icon(Icons.refresh_rounded),
-        ),
-      ],
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 680) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [title, const SizedBox(height: 18), actions],
-          );
-        }
-        return Row(
-          children: [
-            Expanded(child: title),
-            const SizedBox(width: 24),
-            actions,
-          ],
-        );
-      },
-    );
-  }
+      ),
+      IconButton(
+        tooltip: 'Refresh friends',
+        onPressed: onRefresh,
+        icon: const Icon(Icons.refresh_rounded),
+      ),
+    ],
+  );
 }
 
 class _GuestFriendsBanner extends StatelessWidget {
   const _GuestFriendsBanner();
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: AppColors.gold.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.gold),
-    ),
-    child: const Text(
-      'Login to add real friends and invite them online.',
-      textAlign: TextAlign.center,
+  Widget build(BuildContext context) => Material(
+    color: AppColors.gold.withValues(alpha: 0.08),
+    borderRadius: BorderRadius.circular(12),
+    child: const Padding(
+      padding: EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: AppColors.gold, size: 20),
+          SizedBox(width: 10),
+          Expanded(child: Text('Sign in to add and invite friends.')),
+        ],
+      ),
     ),
   );
 }

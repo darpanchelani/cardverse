@@ -16,16 +16,15 @@ class StatsCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.cardGreen,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.gold, size: 24),
+          Icon(icon, color: AppColors.gold, size: 20),
           const Spacer(),
           Text(
             value,

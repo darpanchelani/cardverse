@@ -1,197 +1,101 @@
-import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/app/app_services_scope.dart';
+import 'package:cardverse/app/routes.dart';
 import 'package:cardverse/core/constants/app_colors.dart';
 import 'package:cardverse/core/widgets/app_navigation.dart';
+import 'package:cardverse/features/notifications/widgets/notification_badge_widget.dart';
 import 'package:cardverse/features/progress/controllers/progress_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cardverse/features/notifications/widgets/notification_badge_widget.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, this.embedded = false});
 
-  // Nullable so an instance retained across hot reload can safely migrate
-  // from the pre-shell widget shape where this field did not exist.
   final bool? embedded;
 
   @override
   Widget build(BuildContext context) {
     final progress = ProgressScope.of(context);
-    final actions = [
+    final multiplayerActions = [
       _HomeAction(
-        title: 'Play With Computer',
-        subtitle: 'Practice against smart bots',
-        icon: Icons.smart_toy_rounded,
-        emphasized: true,
-        onTap: () => context.go('${AppRoutes.games}/computer'),
-      ),
-      _HomeAction(
-        title: 'Play With Friends',
-        subtitle: 'Host a private card table',
-        icon: Icons.groups_rounded,
+        title: 'Create a room',
+        icon: Icons.add_rounded,
         onTap: () => context.push(AppRoutes.createRoom),
       ),
       _HomeAction(
-        title: 'Join Room',
-        subtitle: 'Enter a friend’s room code',
-        icon: Icons.meeting_room_outlined,
+        title: 'Join a room',
+        icon: Icons.login_rounded,
         onTap: () => context.push(AppRoutes.joinRoom),
       ),
       _HomeAction(
-        title: 'Public Rooms',
-        subtitle: 'Browse open multiplayer tables',
+        title: 'Public rooms',
         icon: Icons.public_rounded,
         onTap: () => context.push(AppRoutes.publicRooms),
       ),
-      _HomeAction(
-        title: 'Friends',
-        subtitle: 'See who is ready to play',
-        icon: Icons.people_outline_rounded,
-        onTap: () => context.go(AppRoutes.friends),
-      ),
+    ];
+    final moreActions = [
       _HomeAction(
         title: 'Invites',
-        subtitle: 'Review your room invitations',
         icon: Icons.mail_outline_rounded,
         onTap: () => context.push(AppRoutes.invites),
       ),
       _HomeAction(
+        title: 'Match history',
+        icon: Icons.history_rounded,
+        onTap: () => context.push(AppRoutes.matchHistory),
+      ),
+      _HomeAction(
         title: 'Customize',
-        subtitle: 'Cards, tables, and avatar frames',
         icon: Icons.palette_outlined,
         onTap: () => context.push(AppRoutes.customization),
       ),
       _HomeAction(
         title: 'Settings',
-        subtitle: 'Account and app preferences',
         icon: Icons.settings_outlined,
         onTap: () => context.push(AppRoutes.accountSettings),
-      ),
-      _HomeAction(
-        title: 'Match History',
-        subtitle: 'Review your recent results',
-        icon: Icons.history_rounded,
-        onTap: () => context.push(AppRoutes.matchHistory),
-      ),
-      _HomeAction(
-        title: 'Leaderboard',
-        subtitle: 'See the top players',
-        icon: Icons.emoji_events_outlined,
-        onTap: () => context.go(AppRoutes.leaderboard),
-      ),
-      _HomeAction(
-        title: 'Profile',
-        subtitle: 'View your player stats',
-        icon: Icons.person_outline_rounded,
-        onTap: () => context.go(AppRoutes.profile),
       ),
     ];
 
     final body = SafeArea(
       top: false,
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(22, 24, 22, 12),
-            sliver: SliverToBoxAdapter(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 760),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor: AppColors.gold,
-                        child: AnimatedBuilder(
-                          animation: progress,
-                          builder: (context, child) => Text(
-                            _initials(progress.profile.username),
-                            style: const TextStyle(
-                              color: AppColors.ink,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: 'Arial',
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome to CardVerse',
-                              style: Theme.of(context).textTheme.headlineMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            AnimatedBuilder(
-                              animation: progress,
-                              builder: (context, child) => Text(
-                                progress.profile.username,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: AppColors.gold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (AppServicesScope.maybeOf(context) != null)
-                        AnimatedBuilder(
-                          animation: AppServicesScope.of(context).notifications,
-                          builder: (context, _) => NotificationBadgeWidget(
-                            count: AppServicesScope.of(
-                              context,
-                            ).notifications.unreadCount,
-                            child: IconButton(
-                              tooltip: 'Notifications',
-                              onPressed: () =>
-                                  context.push(AppRoutes.notifications),
-                              icon: const Icon(
-                                Icons.notifications_none_rounded,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AnimatedBuilder(
+                    animation: progress,
+                    builder: (context, child) =>
+                        _HomeHeader(username: progress.profile.username),
                   ),
-                ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(22, 10, 22, 4),
-            sliver: SliverToBoxAdapter(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 760),
-                  child: AnimatedBuilder(
+                  const SizedBox(height: 20),
+                  AnimatedBuilder(
                     animation: progress,
                     builder: (context, child) =>
                         _ProgressSummary(controller: progress),
                   ),
-                ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
-            sliver: SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = constraints.crossAxisExtent >= 650
-                    ? 2
-                    : 1;
-                return SliverGrid.builder(
-                  itemCount: actions.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    mainAxisExtent: crossAxisCount == 1 ? 112 : 126,
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: () => context.go('${AppRoutes.games}/computer'),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Play against computer'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                    ),
                   ),
-                  itemBuilder: (context, index) =>
-                      _HomeActionCard(action: actions[index]),
-                );
-              },
+                  const SizedBox(height: 24),
+                  const _SectionLabel('Play with friends'),
+                  const SizedBox(height: 8),
+                  _ActionGroup(actions: multiplayerActions),
+                  const SizedBox(height: 24),
+                  const _SectionLabel('More'),
+                  const SizedBox(height: 8),
+                  _ActionGroup(actions: moreActions),
+                ],
+              ),
             ),
           ),
         ],
@@ -208,19 +112,44 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-String _initials(String name) {
-  final parts = name
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((part) => part.isNotEmpty)
-      .toList();
-  if (parts.isEmpty) return 'CV';
-  if (parts.length == 1) {
-    return parts.first
-        .substring(0, parts.first.length.clamp(1, 2))
-        .toUpperCase();
-  }
-  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.username});
+
+  final String username;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Hi, $username',
+              style: Theme.of(context).textTheme.headlineLarge,
+            ),
+            const SizedBox(height: 3),
+            const Text(
+              'Ready for a game?',
+              style: TextStyle(color: AppColors.mutedText),
+            ),
+          ],
+        ),
+      ),
+      if (AppServicesScope.maybeOf(context) != null)
+        AnimatedBuilder(
+          animation: AppServicesScope.of(context).notifications,
+          builder: (context, child) => NotificationBadgeWidget(
+            count: AppServicesScope.of(context).notifications.unreadCount,
+            child: IconButton(
+              tooltip: 'Notifications',
+              onPressed: () => context.push(AppRoutes.notifications),
+              icon: const Icon(Icons.notifications_none_rounded),
+            ),
+          ),
+        ),
+    ],
+  );
 }
 
 class _ProgressSummary extends StatelessWidget {
@@ -232,141 +161,95 @@ class _ProgressSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final profile = controller.profile;
     final stats = [
-      ('Level', '${profile.level}', Icons.military_tech_rounded),
-      ('Coins', '${profile.coins}', Icons.monetization_on_rounded),
-      ('Wins', '${profile.totalWins}', Icons.emoji_events_rounded),
-      ('Streak', '${profile.currentStreak}', Icons.bolt_rounded),
+      ('Level', '${profile.level}'),
+      ('Wins', '${profile.totalWins}'),
+      ('Coins', '${profile.coins}'),
     ];
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.cardGreen,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
-        children: stats
-            .map(
-              (stat) => Expanded(
-                child: Column(
-                  children: [
-                    Icon(stat.$3, color: AppColors.gold, size: 19),
-                    const SizedBox(height: 5),
-                    Text(
-                      stat.$2,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.paleGold,
-                        fontWeight: FontWeight.w800,
-                      ),
+        children: [
+          for (var index = 0; index < stats.length; index++) ...[
+            if (index > 0)
+              const SizedBox(height: 30, child: VerticalDivider(width: 1)),
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    stats[index].$2,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    stats[index].$1,
+                    style: const TextStyle(
+                      color: AppColors.mutedText,
+                      fontSize: 12,
                     ),
-                    Text(
-                      stat.$1,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.mutedText,
-                        fontFamily: 'Arial',
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            )
-            .toList(),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
-class _HomeActionCard extends StatelessWidget {
-  const _HomeActionCard({required this.action});
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
 
-  final _HomeAction action;
+  final String label;
 
   @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: action.onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: action.emphasized ? AppColors.gold : AppColors.cardGreen,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: action.emphasized ? AppColors.paleGold : AppColors.border,
-            ),
+  Widget build(BuildContext context) => Text(
+    label,
+    style: Theme.of(
+      context,
+    ).textTheme.titleMedium?.copyWith(color: AppColors.mutedText),
+  );
+}
+
+class _ActionGroup extends StatelessWidget {
+  const _ActionGroup({required this.actions});
+
+  final List<_HomeAction> actions;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.cardGreen,
+    borderRadius: BorderRadius.circular(12),
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      children: [
+        for (var index = 0; index < actions.length; index++) ...[
+          ListTile(
+            minTileHeight: 58,
+            leading: Icon(actions[index].icon, color: AppColors.gold),
+            title: Text(actions[index].title),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: actions[index].onTap,
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: action.emphasized
-                      ? AppColors.ink.withValues(alpha: 0.1)
-                      : AppColors.inputGreen,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  action.icon,
-                  color: action.emphasized ? AppColors.ink : AppColors.paleGold,
-                  size: 29,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      action.title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: action.emphasized
-                            ? AppColors.ink
-                            : AppColors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      action.subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: action.emphasized
-                            ? AppColors.ink.withValues(alpha: 0.7)
-                            : AppColors.mutedText,
-                        fontFamily: 'Arial',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 17,
-                color: action.emphasized ? AppColors.ink : AppColors.mutedText,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+          if (index < actions.length - 1) const Divider(height: 1, indent: 56),
+        ],
+      ],
+    ),
+  );
 }
 
 class _HomeAction {
   const _HomeAction({
     required this.title,
-    required this.subtitle,
     required this.icon,
     required this.onTap,
-    this.emphasized = false,
   });
 
   final String title;
-  final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
-  final bool emphasized;
 }

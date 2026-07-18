@@ -40,12 +40,6 @@ class ProfileScreen extends StatelessWidget {
               '${cloud?.level ?? profile.level}',
               Icons.military_tech_outlined,
             ),
-            ('XP', '${cloud?.xp ?? profile.xp}', Icons.auto_awesome_outlined),
-            (
-              'Coins',
-              '${cloud?.coins ?? profile.coins}',
-              Icons.monetization_on_outlined,
-            ),
             (
               'Games',
               '${cloud?.totalGames ?? profile.totalGames}',
@@ -57,29 +51,9 @@ class ProfileScreen extends StatelessWidget {
               Icons.emoji_events_outlined,
             ),
             (
-              'Losses',
-              '${cloud?.totalLosses ?? profile.totalLosses}',
-              Icons.close_rounded,
-            ),
-            (
-              'Draws',
-              '${cloud?.totalDraws ?? profile.totalDraws}',
-              Icons.sync_rounded,
-            ),
-            (
               'Win Rate',
               NumberFormatUtils.percentage(cloud?.winRate ?? profile.winRate),
               Icons.donut_large_rounded,
-            ),
-            (
-              'Win Streak',
-              '${cloud?.currentStreak ?? profile.currentStreak}',
-              Icons.local_fire_department_outlined,
-            ),
-            (
-              'Best Streak',
-              '${cloud?.bestStreak ?? profile.bestStreak}',
-              Icons.bolt_rounded,
             ),
           ];
           final unlocked = controller.achievements
@@ -108,17 +82,17 @@ class ProfileScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _avatarFrameColor(cloud?.avatarFrame ?? 'default'),
-                    width: 4,
+                    width: 2,
                   ),
                 ),
                 child: CircleAvatar(
-                  radius: 52,
+                  radius: 42,
                   backgroundColor: AppColors.gold,
                   child: Text(
                     _initials(cloud?.username ?? profile.username),
                     style: const TextStyle(
                       color: AppColors.ink,
-                      fontSize: 30,
+                      fontSize: 24,
                       fontWeight: FontWeight.w800,
                       fontFamily: 'Arial',
                     ),
@@ -131,25 +105,17 @@ class ProfileScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              if (cloud != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Card: ${cloud.equippedCardTheme} · Table: ${cloud.equippedTableTheme}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.mutedText),
-                ),
-              ],
               const SizedBox(height: 6),
               Text(
                 cloud == null
                     ? 'Favorite game: ${profile.favoriteGame}'
-                    : '${cloud.email} · Favorite game: ${cloud.favoriteGame}',
+                    : cloud.email,
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppColors.gold),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 22),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final columns = constraints.maxWidth >= 620 ? 3 : 2;
@@ -161,7 +127,7 @@ class ProfileScreen extends StatelessWidget {
                       crossAxisCount: columns,
                       mainAxisSpacing: 11,
                       crossAxisSpacing: 11,
-                      mainAxisExtent: 125,
+                      mainAxisExtent: 96,
                     ),
                     itemBuilder: (context, index) {
                       final stat = stats[index];
@@ -215,61 +181,19 @@ class ProfileScreen extends StatelessWidget {
                     child: MatchHistoryTileWidget(match: match),
                   ),
                 ),
-              const SizedBox(height: 18),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.matchHistory),
-                icon: const Icon(Icons.history_rounded),
-                label: const Text('View Match History'),
+              const SizedBox(height: 22),
+              _ProfileActions(
+                isAuthenticated: auth?.isAuthenticated == true,
+                onCustomize: () => context.push(AppRoutes.customization),
+                onAccountSettings: () =>
+                    context.push(AppRoutes.accountSettings),
+                onAppSettings: () => context.push(AppRoutes.appSettings),
+                onAccountAction: () => auth?.isAuthenticated == true
+                    ? _editProfile(context, auth!)
+                    : context.go(AppRoutes.login),
+                onLogout: () => _confirmLogout(context, auth),
               ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.achievements),
-                icon: const Icon(Icons.emoji_events_outlined),
-                label: const Text('View Achievements'),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.customization),
-                icon: const Icon(Icons.palette_outlined),
-                label: const Text('Customize Cards and Table'),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.accountSettings),
-                icon: const Icon(Icons.manage_accounts_outlined),
-                label: const Text('Account Settings'),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.appSettings),
-                icon: const Icon(Icons.tune_rounded),
-                label: const Text('App Settings'),
-              ),
-              const SizedBox(height: 10),
-              if (auth?.isAuthenticated == true) ...[
-                OutlinedButton.icon(
-                  onPressed: () => _editProfile(context, auth!),
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit Cloud Profile'),
-                ),
-                const SizedBox(height: 10),
-              ] else ...[
-                FilledButton.icon(
-                  onPressed: () => context.go(AppRoutes.login),
-                  icon: const Icon(Icons.cloud_upload_outlined),
-                  label: const Text('Login to Save Online'),
-                ),
-                const SizedBox(height: 10),
-              ],
-              OutlinedButton.icon(
-                onPressed: () => _confirmLogout(context, auth),
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('Log Out'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.gold,
-                ),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               TextButton.icon(
                 onPressed: () => _confirmReset(context, controller),
                 icon: const Icon(Icons.delete_forever_outlined),
@@ -434,17 +358,8 @@ class _CloudBanner extends StatelessWidget {
   final bool isAuthenticated;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: (isAuthenticated ? Colors.greenAccent : AppColors.gold).withValues(
-        alpha: 0.1,
-      ),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: isAuthenticated ? Colors.greenAccent : AppColors.gold,
-      ),
-    ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
       children: [
         Icon(
@@ -455,13 +370,66 @@ class _CloudBanner extends StatelessWidget {
         Expanded(
           child: Text(
             isAuthenticated
-                ? 'Cloud profile active. Online matches sync automatically.'
-                : 'Guest mode: create an account to save online progress.',
+                ? 'Progress is synced online'
+                : 'Guest mode · Sign in to sync progress',
           ),
         ),
       ],
     ),
   );
+}
+
+class _ProfileActions extends StatelessWidget {
+  const _ProfileActions({
+    required this.isAuthenticated,
+    required this.onCustomize,
+    required this.onAccountSettings,
+    required this.onAppSettings,
+    required this.onAccountAction,
+    required this.onLogout,
+  });
+
+  final bool isAuthenticated;
+  final VoidCallback onCustomize;
+  final VoidCallback onAccountSettings;
+  final VoidCallback onAppSettings;
+  final VoidCallback onAccountAction;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = [
+      ('Customize', Icons.palette_outlined, onCustomize),
+      ('Account settings', Icons.manage_accounts_outlined, onAccountSettings),
+      ('App settings', Icons.tune_rounded, onAppSettings),
+      (
+        isAuthenticated ? 'Edit profile' : 'Sign in to sync',
+        isAuthenticated ? Icons.edit_outlined : Icons.login_rounded,
+        onAccountAction,
+      ),
+      if (isAuthenticated) ('Log out', Icons.logout_rounded, onLogout),
+    ];
+    return Material(
+      color: AppColors.cardGreen,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var index = 0; index < actions.length; index++) ...[
+            ListTile(
+              minTileHeight: 56,
+              leading: Icon(actions[index].$2, color: AppColors.gold),
+              title: Text(actions[index].$1),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: actions[index].$3,
+            ),
+            if (index < actions.length - 1)
+              const Divider(height: 1, indent: 56),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 String _initials(String name) {
@@ -522,8 +490,7 @@ class _EmptyPanel extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.cardGreen,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [

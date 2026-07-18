@@ -3,22 +3,23 @@ import 'package:flutter/material.dart';
 
 abstract final class AppTheme {
   static ThemeData get darkTheme {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.gold,
-      brightness: Brightness.dark,
-      primary: AppColors.gold,
-      surface: AppColors.cardGreen,
-    ).copyWith(
-      primary: AppColors.gold,
-      onPrimary: AppColors.ink,
-      secondary: AppColors.paleGold,
-      onSecondary: AppColors.ink,
-      surface: AppColors.cardGreen,
-      onSurface: AppColors.white,
-      error: AppColors.danger,
-      onError: AppColors.ink,
-      outline: AppColors.border,
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: AppColors.gold,
+          brightness: Brightness.dark,
+          primary: AppColors.gold,
+          surface: AppColors.cardGreen,
+        ).copyWith(
+          primary: AppColors.gold,
+          onPrimary: AppColors.ink,
+          secondary: AppColors.paleGold,
+          onSecondary: AppColors.ink,
+          surface: AppColors.cardGreen,
+          onSurface: AppColors.white,
+          error: AppColors.danger,
+          onError: AppColors.ink,
+          outline: AppColors.border,
+        );
 
     return ThemeData(
       useMaterial3: true,
@@ -32,12 +33,12 @@ abstract final class AppTheme {
           letterSpacing: -1.2,
         ),
         headlineLarge: TextStyle(
-          fontSize: 30,
+          fontSize: 26,
           fontWeight: FontWeight.w800,
-          letterSpacing: -0.5,
+          letterSpacing: -0.3,
         ),
-        headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-        titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         bodyLarge: TextStyle(fontSize: 16, height: 1.45),
         bodyMedium: TextStyle(fontSize: 14, height: 1.4),
@@ -54,10 +55,10 @@ abstract final class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        toolbarHeight: 68,
+        toolbarHeight: 60,
         titleTextStyle: TextStyle(
           color: AppColors.white,
-          fontSize: 19,
+          fontSize: 18,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.2,
         ),
@@ -67,7 +68,7 @@ abstract final class AppTheme {
         color: AppColors.cardGreen,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: AppColors.border),
         ),
       ),
@@ -107,7 +108,7 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.gold,
           foregroundColor: AppColors.ink,
-          minimumSize: const Size(0, 48),
+          minimumSize: const Size(0, 44),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -117,7 +118,7 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.white,
-          minimumSize: const Size(0, 48),
+          minimumSize: const Size(0, 44),
           side: const BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -132,7 +133,7 @@ abstract final class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 72,
+        height: 66,
         backgroundColor: AppColors.tableGreen,
         indicatorColor: AppColors.gold,
         shadowColor: Colors.transparent,
@@ -158,7 +159,7 @@ abstract final class AppTheme {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
-          minimumSize: const WidgetStatePropertyAll(Size(0, 46)),
+          minimumSize: const WidgetStatePropertyAll(Size(0, 42)),
           foregroundColor: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.selected)
                 ? AppColors.ink

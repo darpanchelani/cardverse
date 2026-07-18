@@ -18,31 +18,19 @@ class CardVerseTopBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<AppSection>? onSectionSelected;
 
   @override
-  Size get preferredSize => const Size.fromHeight(68);
+  Size get preferredSize => const Size.fromHeight(60);
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.sizeOf(context).width >= 1024;
     return AppBar(
       automaticallyImplyLeading: false,
-      titleSpacing: isDesktop ? 28 : 18,
+      titleSpacing: isDesktop ? 24 : 18,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 34,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.style_rounded,
-              color: AppColors.ink,
-              size: 21,
-            ),
-          ),
-          const SizedBox(width: 11),
+          const Icon(Icons.style_rounded, color: AppColors.gold, size: 24),
+          const SizedBox(width: 9),
           const Text('CardVerse'),
         ],
       ),
@@ -190,9 +178,11 @@ class _TopDestination extends StatelessWidget {
         child: AnimatedContainer(
           duration: duration,
           curve: Curves.easeOutCubic,
-          height: 42,
+          height: 38,
           decoration: ShapeDecoration(
-            color: selected ? AppColors.gold : Colors.transparent,
+            color: selected
+                ? AppColors.gold.withValues(alpha: 0.14)
+                : Colors.transparent,
             shape: const StadiumBorder(),
           ),
           child: Material(
@@ -219,7 +209,7 @@ class _TopDestination extends StatelessWidget {
                         selected ? selectedIcon : icon,
                         key: ValueKey(selected),
                         size: 19,
-                        color: selected ? AppColors.ink : AppColors.mutedText,
+                        color: selected ? AppColors.gold : AppColors.mutedText,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -227,7 +217,7 @@ class _TopDestination extends StatelessWidget {
                       duration: duration,
                       curve: Curves.easeOutCubic,
                       style: TextStyle(
-                        color: selected ? AppColors.ink : AppColors.mutedText,
+                        color: selected ? AppColors.gold : AppColors.mutedText,
                         fontWeight: FontWeight.w800,
                       ),
                       child: Text(label),
