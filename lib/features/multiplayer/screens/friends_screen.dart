@@ -60,6 +60,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
               if (widget.embedded == true) ...[
                 _FriendsHeader(
                   isAuthenticated: isAuthenticated,
+                  onBack: () => context.go(AppRoutes.home),
                   onAdd: () => isAuthenticated
                       ? context.push(AppRoutes.userSearch)
                       : context.go(AppRoutes.login),
@@ -223,12 +224,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
 class _FriendsHeader extends StatelessWidget {
   const _FriendsHeader({
     required this.isAuthenticated,
+    required this.onBack,
     required this.onAdd,
     required this.onRequests,
     required this.onRefresh,
   });
 
   final bool isAuthenticated;
+  final VoidCallback onBack;
   final VoidCallback onAdd;
   final VoidCallback? onRequests;
   final VoidCallback onRefresh;
@@ -237,6 +240,12 @@ class _FriendsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = Row(
       children: [
+        IconButton(
+          tooltip: 'Back to Home',
+          onPressed: onBack,
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        const SizedBox(width: 4),
         Container(
           width: 48,
           height: 48,

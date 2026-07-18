@@ -39,7 +39,13 @@ void main() {
               routes: [
                 GoRoute(
                   path: '/friends',
-                  builder: (context, state) => const _LabelPage('Friends page'),
+                  builder: (context, state) => const _FriendsTestPage(),
+                  routes: [
+                    GoRoute(
+                      path: 'add',
+                      builder: (context, state) => const _NestedFriendsPage(),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -82,11 +88,40 @@ void main() {
       isTrue,
     );
     expect(find.text('Play page'), findsOneWidget);
+    expect(find.text('Count: 1'), findsNothing);
 
     await tester.pumpAndSettle();
     await tester.tap(find.text('Friends'));
     await tester.pumpAndSettle();
     expect(find.text('Friends page'), findsOneWidget);
+    expect(find.text('Play page'), findsNothing);
+    expect(find.byType(AnimatedSlide), findsNothing);
+    expect(find.byType(AnimatedOpacity), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('open-add-friend')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add friend page'), findsOneWidget);
+    expect(
+      identical(
+        navigationBarElement,
+        tester.element(find.byType(NavigationBar)),
+      ),
+      isTrue,
+    );
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Friends page'), findsOneWidget);
+
+    await tester.tap(find.text('Ranks'));
+    await tester.pump();
+    await tester.tap(find.text('Profile'));
+    await tester.pump();
+    await tester.tap(find.text('Friends'));
+    await tester.pump();
+    expect(find.text('Friends page'), findsOneWidget);
+    expect(find.text('Ranks page'), findsNothing);
+    expect(find.text('Profile page'), findsNothing);
 
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
@@ -123,4 +158,27 @@ class _LabelPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(child: Text(label));
+}
+
+class _FriendsTestPage extends StatelessWidget {
+  const _FriendsTestPage();
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: FilledButton(
+      key: const ValueKey('open-add-friend'),
+      onPressed: () => context.push('/friends/add'),
+      child: const Text('Friends page'),
+    ),
+  );
+}
+
+class _NestedFriendsPage extends StatelessWidget {
+  const _NestedFriendsPage();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Add friend page')),
+    body: const SizedBox.expand(),
+  );
 }

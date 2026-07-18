@@ -43,6 +43,14 @@ void main() {
     expect(find.text('Meera'), findsNothing);
   });
 
+  testWidgets('embedded friends screen provides a back action', (tester) async {
+    await tester.pumpWidget(
+      _app(const Scaffold(body: FriendsScreen(embedded: true)), controllers),
+    );
+
+    expect(find.byTooltip('Back to Home'), findsOneWidget);
+  });
+
   testWidgets('lobby adds a bot and toggles current player ready', (
     tester,
   ) async {

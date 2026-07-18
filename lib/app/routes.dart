@@ -42,8 +42,8 @@ abstract final class AppRoutes {
   static const joinRoom = '/join-room';
   static const publicRooms = '/public-rooms';
   static const friends = '/friends';
-  static const friendRequests = '/friend-requests';
-  static const userSearch = '/user-search';
+  static const friendRequests = '$friends/requests';
+  static const userSearch = '$friends/add';
   static const invites = '/invites';
   static const roomLobby = '/room-lobby';
   static const multiplayerPlaceholder = '/multiplayer-placeholder';
@@ -100,6 +100,16 @@ abstract final class AppRoutes {
                 path: friends,
                 builder: (context, state) =>
                     const FriendsScreen(embedded: true),
+                routes: [
+                  GoRoute(
+                    path: 'requests',
+                    builder: (context, state) => const FriendRequestsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'add',
+                    builder: (context, state) => const UserSearchScreen(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -151,14 +161,6 @@ abstract final class AppRoutes {
       GoRoute(
         path: publicRooms,
         builder: (context, state) => const PublicRoomsScreen(),
-      ),
-      GoRoute(
-        path: friendRequests,
-        builder: (context, state) => const FriendRequestsScreen(),
-      ),
-      GoRoute(
-        path: userSearch,
-        builder: (context, state) => const UserSearchScreen(),
       ),
       GoRoute(
         path: invites,

@@ -281,62 +281,17 @@ class CardVerseBranchContainer extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final duration = reduceMotion
-        ? Duration.zero
-        : const Duration(milliseconds: 200);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        for (var index = 0; index < children.length; index++)
-          _BranchLayer(
-            active: index == currentIndex,
-            offset: index < currentIndex ? -0.018 : 0.018,
-            duration: duration,
-            child: children[index],
-          ),
-      ],
-    );
-  }
-}
-
-class _BranchLayer extends StatelessWidget {
-  const _BranchLayer({
-    required this.active,
-    required this.offset,
-    required this.duration,
-    required this.child,
-  });
-
-  final bool active;
-  final double offset;
-  final Duration duration;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      excluding: !active,
-      child: IgnorePointer(
-        ignoring: !active,
-        child: TickerMode(
-          enabled: active,
-          child: AnimatedSlide(
-            duration: duration,
-            curve: Curves.easeOutCubic,
-            offset: active ? Offset.zero : Offset(offset, 0),
-            child: AnimatedOpacity(
-              duration: duration,
-              curve: Curves.easeOutCubic,
-              opacity: active ? 1 : 0,
-              child: RepaintBoundary(child: child),
-            ),
-          ),
+  Widget build(BuildContext context) => IndexedStack(
+    index: currentIndex,
+    sizing: StackFit.expand,
+    children: [
+      for (var index = 0; index < children.length; index++)
+        TickerMode(
+          enabled: index == currentIndex,
+          child: RepaintBoundary(child: children[index]),
         ),
-      ),
-    );
-  }
+    ],
+  );
 }
 
 void _goTo(BuildContext context, AppSection section) {
